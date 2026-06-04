@@ -84,7 +84,7 @@ export function BrandFooter({ company = BRAND.company }) {
         height={16}
         style={{ opacity: 0.85, flexShrink: 0 }}
       />
-      <span>
+      <span className="brand-footer-text">
         {year} {company}. Alle rettigheter reservert.
       </span>
     </footer>

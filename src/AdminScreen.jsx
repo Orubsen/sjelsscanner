@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { BRAND } from "./analysisConfig.js";
+import "./theme.css";
 import {
   ADMIN_TOKEN_KEY,
   verifyAdminPassword,
@@ -94,7 +95,7 @@ export default function AdminScreen() {
   };
 
   return (
-    <>
+    <div className="app-root">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Crimson+Pro:wght@400&display=swap');
         :root {
@@ -236,6 +237,6 @@ export default function AdminScreen() {
           </>
         )}
       </div>
-    </>
+    </div>
   );
 }

@@ -1,0 +1,132 @@
+/**
+ * Desktop: større typografi og bredere layout (mobil uendret).
+ * Skalerer hele appen på PC — tilsvarer ca. 150–185% uten nettleser-zoom.
+ */
+
+@media (min-width: 900px) {
+  :root {
+    --layout-intro: 40rem;
+    --layout-narrow: 36rem;
+    --layout-main: 52rem;
+    --layout-report: 56rem;
+  }
+
+  .app-root {
+    zoom: 1.75;
+  }
+
+  .layout-shell--intro {
+    max-width: var(--layout-intro) !important;
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+  }
+
+  .layout-shell--question {
+    max-width: var(--layout-main) !important;
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+  }
+
+  .layout-shell--report {
+    max-width: var(--layout-report) !important;
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+  }
+
+  .layout-narrow {
+    max-width: var(--layout-narrow) !important;
+  }
+
+  .type-display-title {
+    font-size: clamp(2.75rem, 5.5vw, 5rem) !important;
+  }
+
+  .type-question-text {
+    font-size: clamp(1.2rem, 2vw, 1.5rem) !important;
+    line-height: 1.75 !important;
+  }
+
+  .type-option-btn {
+    font-size: 1.0625rem !important;
+    padding: 1rem 1.25rem !important;
+    line-height: 1.55 !important;
+  }
+
+  .type-intro-field {
+    font-size: 1rem !important;
+    padding: 0.75rem 0.875rem !important;
+  }
+
+  .type-mono-xs {
+    font-size: 0.75rem !important;
+  }
+
+  .type-mono-sm {
+    font-size: 0.8125rem !important;
+  }
+
+  .type-body-sm {
+    font-size: 0.9375rem !important;
+  }
+
+  .brand-footer-text {
+    font-size: 0.75rem !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --layout-intro: 44rem;
+    --layout-narrow: 40rem;
+    --layout-main: 56rem;
+    --layout-report: 60rem;
+  }
+
+  .app-root {
+    zoom: 1.9;
+  }
+
+  .type-display-title {
+    font-size: clamp(3rem, 5vw, 5.5rem) !important;
+  }
+
+  .type-question-text {
+    font-size: clamp(1.3rem, 1.8vw, 1.65rem) !important;
+  }
+
+  .type-option-btn {
+    font-size: 1.125rem !important;
+    padding: 1.1rem 1.35rem !important;
+  }
+}
+
+@media (min-width: 1536px) {
+  .app-root {
+    zoom: 2;
+  }
+}
+
+/* Firefox eldre versjoner uten zoom */
+@supports not (zoom: 1) {
+  @media (min-width: 900px) {
+    .app-root {
+      transform: scale(1.75);
+      transform-origin: top center;
+      width: 57.143%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+  @media (min-width: 1200px) {
+    .app-root {
+      transform: scale(1.9);
+      width: 52.632%;
+    }
+  }
+  @media (min-width: 1536px) {
+    .app-root {
+      transform: scale(2);
+      width: 50%;
+    }
+  }
+}

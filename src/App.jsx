@@ -193,27 +193,27 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: 32, textAlign: "center" }}>
+    <div className="layout-shell layout-shell--intro" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: 32, textAlign: "center", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
       <IntroBrandMark />
-      <div style={{ marginBottom: 16, fontSize: 11, letterSpacing: 4, color: "var(--accent-dim)", fontFamily: "var(--mono)" }}>
+      <div className="type-mono-sm" style={{ marginBottom: 16, fontSize: 11, letterSpacing: 4, color: "var(--accent-dim)", fontFamily: "var(--mono)" }}>
         PSYKOANALYTISK SYSTEM v2.4.1
       </div>
-      <h1 style={{ fontSize: "clamp(2rem, 6vw, 4rem)", fontFamily: "var(--display)", fontWeight: 900, letterSpacing: -2, lineHeight: 1, marginBottom: 8, color: "var(--fg)" }}>
+      <h1 className="type-display-title" style={{ fontSize: "clamp(2rem, 6vw, 4rem)", fontFamily: "var(--display)", fontWeight: 900, letterSpacing: -2, lineHeight: 1, marginBottom: 8, color: "var(--fg)" }}>
         <GlitchText text="SJELS" active={glitch} /><br />
         <span style={{ color: "var(--accent)" }}>
           <GlitchText text="SCANNER" active={glitch} />
         </span>
       </h1>
       <div style={{ width: 60, height: 1, background: "var(--accent)", margin: "24px auto", boxShadow: "0 0 10px var(--accent)" }} />
-      <p style={{ maxWidth: 480, color: "var(--dim)", fontSize: 13, lineHeight: 1.8, marginBottom: 8, fontFamily: "var(--mono)" }}>
+      <p className="layout-narrow type-body-sm" style={{ maxWidth: 480, width: "100%", color: "var(--dim)", fontSize: 13, lineHeight: 1.8, marginBottom: 8, fontFamily: "var(--mono)" }}>
         {BRAND.tagline}<br />
         Utviklet av {BRAND.company}. · {BRAND.product}
       </p>
-      <p style={{ maxWidth: 480, color: "var(--dim-2)", fontSize: 11, lineHeight: 1.8, marginBottom: 24, fontFamily: "var(--mono)" }}>
+      <p className="layout-narrow type-mono-sm" style={{ maxWidth: 480, width: "100%", color: "var(--dim-2)", fontSize: 11, lineHeight: 1.8, marginBottom: 24, fontFamily: "var(--mono)" }}>
         Velg det alternativet som ligner mest på deg. Systemet er designet for å identifisere selvbedrag.
       </p>
 
-      <div style={{ maxWidth: 420, width: "100%", marginBottom: 32, textAlign: "left" }}>
+      <div className="layout-narrow" style={{ maxWidth: 420, width: "100%", marginBottom: 32, textAlign: "left" }}>
         <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--accent)", fontFamily: "var(--mono)", marginBottom: 12 }}>
           FØR VI STARTER
         </div>
@@ -225,6 +225,7 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
           onChange={(e) => setName(e.target.value)}
           onBlur={() => setTouched(true)}
           placeholder="Fornavn og etternavn"
+          className="type-intro-field"
           style={{ ...introFieldStyle, marginBottom: touched && validation.errors.name ? 4 : 12 }}
         />
         {touched && validation.errors.name && (
@@ -243,6 +244,7 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
               onChange={(e) => setAge(e.target.value)}
               onBlur={() => setTouched(true)}
               placeholder={`${MIN_PARTICIPANT_AGE}–${MAX_PARTICIPANT_AGE}`}
+              className="type-intro-field"
               style={{ ...introFieldStyle, marginBottom: touched && validation.errors.age ? 4 : 0 }}
             />
             {touched && validation.errors.age && (
@@ -259,6 +261,7 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
               onChange={(e) => setEmail(e.target.value)}
               onBlur={() => setTouched(true)}
               placeholder="din@epost.no"
+              className="type-intro-field"
               style={{ ...introFieldStyle, marginBottom: touched && validation.errors.email ? 4 : 0 }}
             />
             {touched && validation.errors.email && (
@@ -461,7 +464,7 @@ function QuestionScreen({
   };
 
   return (
-    <div style={{ maxWidth: 680, margin: "0 auto", padding: "32px 24px", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+    <div className="layout-shell layout-shell--question" style={{ maxWidth: 680, margin: "0 auto", padding: "32px 24px", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", width: "100%", boxSizing: "border-box" }}>
       <ProgressBar current={questionNumber} maxQuestions={maxQuestions} />
       <CategoryProgress coveredCategoryIds={coveredCategoryIds} analysisReady={analysisReady} readinessNote={readinessNote} />
 
@@ -475,7 +478,7 @@ function QuestionScreen({
           </div>
         </div>
 
-        <div style={{ fontSize: "clamp(15px, 2.5vw, 18px)", lineHeight: 1.7, color: "var(--fg-soft)", fontFamily: "var(--body)", minHeight: 60 }}>
+        <div className="type-question-text" style={{ fontSize: "clamp(15px, 2.5vw, 18px)", lineHeight: 1.7, color: "var(--fg-soft)", fontFamily: "var(--body)", minHeight: 60 }}>
           {isLoading && !question ? (
             <span style={{ color: "var(--dim)", fontFamily: "var(--mono)", fontSize: 13 }}>
               PROSESSERER<span style={{ animation: "blink 1s infinite" }}>...</span>
@@ -501,6 +504,7 @@ function QuestionScreen({
             disabled={!questionReady || isLoading}
             onMouseEnter={() => setHoveredOption(i)}
             onMouseLeave={() => setHoveredOption(null)}
+            className="type-option-btn"
             style={{
               textAlign: "left",
               background: hoveredOption === i ? "rgba(129,140,248,0.08)" : "var(--surface)",
@@ -696,7 +700,7 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
   };
 
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: "60px 24px", opacity: visible ? 1 : 0, transition: "opacity 0.8s ease" }}>
+    <div className="layout-shell layout-shell--report" style={{ maxWidth: 720, margin: "0 auto", padding: "60px 24px", opacity: visible ? 1 : 0, transition: "opacity 0.8s ease", width: "100%", boxSizing: "border-box" }}>
       <div style={{ textAlign: "center", marginBottom: 64 }}>
         <div style={{ fontSize: 10, letterSpacing: 4, color: "var(--accent)", fontFamily: "var(--mono)", marginBottom: 16 }}>
           ANALYSE KOMPLETT
@@ -1438,7 +1442,7 @@ export default function App() {
   };
 
   return (
-    <>
+    <div className="app-root">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&family=Bebas+Neue&display=swap');
         :root {
@@ -1517,6 +1521,6 @@ export default function App() {
           onRestart={restart}
         />
       )}
-    </>
+    </div>
   );
 }
