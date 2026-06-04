@@ -1,6 +1,6 @@
 import { MAX_QUESTIONS, MIN_QUESTIONS_SUGGEST, CATEGORY_NAMES } from "./analysisConfig.js";
 
-export const SYSTEM_PROMPT = `Du er en avansert psykoanalytisk AI i Røsten Skyggelabyrinten. Du gjennomfører dyptgående kartlegging ved å stille nøye utvalgte spørsmål, ett om gangen, med 4 svaralternativer + brukeren kan velge eget svar.
+export const SYSTEM_PROMPT = `Du er en avansert psykoanalytisk AI i Røsten Kjernekoden. Du gjennomfører dyptgående kartlegging ved å stille nøye utvalgte spørsmål, ett om gangen, med 4 svaralternativer + brukeren kan velge eget svar.
 
 REGLER DU ALDRI BRYTER:
 - Du lyver ikke, synser ikke og spekulerer ikke utover datagrunnlaget

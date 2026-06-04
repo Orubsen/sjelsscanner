@@ -2,7 +2,7 @@
 export const en = {
   brand: {
     name: "Røsten",
-    product: "Skyggelabyrinten",
+    product: "Kjernekoden",
     company: "RØSTEN ENT",
     tagline: "Surgical psychoanalytic mapping — not a personality test.",
     developedBy: "Developed by {company}. · {product}",
@@ -30,7 +30,7 @@ export const en = {
   crisis: {
     title: "NEED HELP NOW?",
     intro:
-      "Skyggelabyrinten does not replace crisis support or treatment. If you are in acute distress or crisis:",
+      "Kjernekoden does not replace crisis support or treatment. If you are in acute distress or crisis:",
     lines: [
       { label: "Mental Helse – Helpline (Norway)", value: "116 123", href: "tel:116123" },
       { label: "Emergency medical services (Norway)", value: "113", href: "tel:113" },
@@ -74,8 +74,8 @@ export const en = {
   lang: { label: "Language" },
   intro: {
     version: "PSYCHOANALYTIC SYSTEM v2.4.1",
-    titleLine1: "SHADOW",
-    titleLine2: "LABYRINTH",
+    titleLine1: "CORE",
+    titleLine2: "CODE",
     hint: "Choose the option that fits you best. The system is designed to surface self-deception.",
     beforeStart: "BEFORE WE START",
     name: "NAME",
@@ -85,7 +85,7 @@ export const en = {
     emailPlaceholder: "you@email.com",
     questionsFromTitle: "WHERE DO THE QUESTIONS COME FROM?",
     questionsFromBody:
-      "Questions are generated on the fly by Skyggelabyrinten — not taken from a fixed test booklet or quiz. For each person the system chooses the next question from what you have already answered, using established psychological frameworks and 15 thematic areas (e.g. childhood, attachment, boundaries and the shadow side). You get one question at a time with four options; the number of questions is tailored individually, usually between {minQ} and {maxQ}.",
+      "Questions are generated on the fly by Kjernekoden — not taken from a fixed test booklet or quiz. For each person the system chooses the next question from what you have already answered, using established psychological frameworks and 15 thematic areas (e.g. childhood, attachment, boundaries and the shadow side). You get one question at a time with four options; the number of questions is tailored individually, usually between {minQ} and {maxQ}.",
     savedSessionTitle: "IN-PROGRESS SESSION FOUND",
     savedSessionBody: "Question {n} · {covered}/{total} categories covered",
     continue: "CONTINUE",
@@ -174,7 +174,7 @@ export const en = {
     rawText: "RAW TEXT",
     newAnalysis: "NEW SESSION",
     noCopyContent: "No report content.",
-    pdfFilenamePrefix: "Rosten-Skyggelabyrinten-report",
+    pdfFilenamePrefix: "Rosten-Kjernekoden-report",
   },
   errors: {
     analysisInterrupted:
@@ -243,12 +243,12 @@ export const en = {
         body: "{product} is not diagnosis, treatment or emergency help. In a crisis, use the numbers below.",
       },
     },
-    footerScanner: "Skyggelabyrinten",
+    footerScanner: "Kjernekoden",
     footerPrivacy: "Privacy",
   },
   admin: {
     title: "ADMIN",
-    backScanner: "← SHADOW",
+    backScanner: "← CORE",
     refresh: "REFRESH",
     refreshing: "LOADING…",
     exportCsv: "EXPORT CSV",

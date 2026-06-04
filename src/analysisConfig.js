@@ -6,7 +6,7 @@ export const META_CALL_LIMIT = 8;
 
 export const BRAND = {
   name: "Røsten",
-  product: "Skyggelabyrinten",
+  product: "Kjernekoden",
   company: "RØSTEN ENT",
   tagline: "Kirurgisk psykoanalytisk kartlegging — ikke en personlighetstest.",
   contactEmail: "kontakt@xn--rubenrsten-5cb.no",
