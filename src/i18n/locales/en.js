@@ -305,7 +305,7 @@ export const en = {
     participantBlock:
       "[PARTICIPANT]\nName: {name}\nAge: {age}\nEmail: {email}\n\n[AGE ADJUSTMENT]\n{guidance}\nAdapt question text and the four answer options to age and life situation. Keep the same 15 categories and psychoanalytic depth.",
     invalidJsonRetry:
-      "[SYSTEM: Previous response was invalid or truncated JSON. Return ONLY one valid JSON object on one line, no markdown. Use \\n for line breaks in strings. Next step: type question with question, category, questionNumber, options (4 items).]",
+      "[SYSTEM: Previous response was invalid JSON (often unescaped quotes). Return ONLY one valid JSON object on one line. Do not use \" inside text fields — use « ». type question with question, category, questionNumber, options (4 items).]",
     truncatedRetry:
       "[SYSTEM: Previous response was too long and truncated. Return ONLY one compact JSON object type question on one line — NOT analysis. Max ~700 characters total. Short options and readiness_note.",
     forceAnalysis:

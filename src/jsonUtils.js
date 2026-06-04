@@ -38,10 +38,33 @@ export function extractJsonObject(text) {
   return jsonText.slice(start);
 }
 
+function closeOpenString(s) {
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inString) {
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (c === "\\") {
+        escape = true;
+        continue;
+      }
+      if (c === '"') inString = false;
+      continue;
+    }
+    if (c === '"') inString = true;
+  }
+  return inString ? `${s}"` : s;
+}
+
 /** Best-effort fix for truncated or slightly malformed JSON from LLMs. */
 export function repairJson(str) {
-  let s = String(str || "").trim();
+  let s = closeOpenString(String(str || "").trim());
   s = s.replace(/,\s*([}\]])/g, "$1");
+  s = s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, " ");
 
   const opens = (s.match(/\{/g) || []).length;
   const closes = (s.match(/\}/g) || []).length;
@@ -51,14 +74,28 @@ export function repairJson(str) {
     s = s.replace(/,\s*$/, "");
     s += "}".repeat(opens - closes);
   }
+
+  const openBrackets = (s.match(/\[/g) || []).length;
+  const closeBrackets = (s.match(/\]/g) || []).length;
+  if (openBrackets > closeBrackets) {
+    s += "]".repeat(openBrackets - closeBrackets);
+  }
   return s;
 }
 
 export function parseLlmJson(text) {
-  const raw = extractJsonObject(text);
-  if (!raw) throw new Error("No JSON object found in LLM response");
+  const trimmed = String(text || "").trim();
+  const parts = [];
+  if (trimmed.startsWith("{")) parts.push(trimmed);
+  const extracted = extractJsonObject(text);
+  if (extracted && !parts.includes(extracted)) parts.push(extracted);
+  if (!parts.length) throw new Error("No JSON object found in LLM response");
 
-  const candidates = [raw, repairJson(raw)];
+  const candidates = [];
+  for (const raw of parts) {
+    candidates.push(raw, repairJson(raw));
+  }
+
   let lastErr;
   for (const candidate of candidates) {
     try {

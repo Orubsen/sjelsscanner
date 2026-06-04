@@ -1,3 +1,5 @@
+import { QUESTION_RESPONSE_SCHEMA } from "./geminiSchemas.js";
+
 const DEFAULT_MODEL = "gemini-3.5-flash";
 
 function toGeminiContents(messages) {
@@ -48,7 +50,13 @@ export default async (request) => {
       maxOutputTokens: body.max_tokens ?? 4096,
       temperature: body.temperature ?? 0.7,
     };
-    if (body.json_mode) {
+    if (body.json_schema === "question") {
+      generationConfig.responseMimeType = "application/json";
+      generationConfig.responseSchema = QUESTION_RESPONSE_SCHEMA;
+      if (generationConfig.temperature > 0.5) {
+        generationConfig.temperature = 0.35;
+      }
+    } else if (body.json_mode) {
       generationConfig.responseMimeType = "application/json";
     }
 

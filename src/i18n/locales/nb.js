@@ -310,7 +310,7 @@ export const nb = {
     participantBlock:
       "[DELTAKER]\nNavn: {name}\nAlder: {age}\nE-post: {email}\n\n[ALDERSJUSTERING]\n{guidance}\nTilpass spørsmålstekst og de fire svaralternativene til alder og livssituasjon. Behold samme 15 kategorier og psykoanalytisk dybde.",
     invalidJsonRetry:
-      "[SYSTEM: Forrige svar var ugyldig eller avkuttet JSON. Returner KUN ett gyldig JSON-objekt på én linje, uten markdown. Bruk \\n for linjeskift i strenger. For neste steg: type question med question, category, questionNumber, options (4 stk).]",
+      "[SYSTEM: Forrige svar var ugyldig JSON (ofte uescapede anførselstegn). Returner KUN ett gyldig JSON-objekt på én linje. Ikke bruk \" inne i tekstfelt — bruk « ». type question med question, category, questionNumber, options (4 stk).]",
     truncatedRetry:
       "[SYSTEM: Forrige svar ble for langt og avkuttet. Returner KUN ett kompakt JSON-objekt type question på én linje — IKKE analysis. Maks ~700 tegn totalt. Korte alternativer og readiness_note.",
     forceAnalysis:

@@ -1118,7 +1118,7 @@ export default function App() {
       participant: participantCtx = null,
     } = options;
 
-    const requestOnce = async (apiMessages, allowRetry, retryKind = "json") => {
+    const requestOnce = async (apiMessages, retriesLeft = 2, retryKind = "json") => {
       const controller = new AbortController();
       const timeoutId = setTimeout(
         () => controller.abort(new Error("Analysis request timed out after 90s")),
@@ -1137,6 +1137,8 @@ export default function App() {
             model: "gemini-3.5-flash",
             max_tokens: maxTokens,
             json_mode: jsonMode,
+            json_schema: jsonMode ? "question" : undefined,
+            temperature: jsonMode ? 0.35 : undefined,
             system: systemPrompt,
             messages: prepared,
           }),
@@ -1160,13 +1162,16 @@ export default function App() {
         try {
           return tryParse();
         } catch (parseErr) {
-          if (!allowRetry) throw parseErr;
-          const retryKey =
-            data?.truncated || data?.finishReason === "MAX_TOKENS"
-              ? "api.truncatedRetry"
-              : retryKind === "truncated"
-                ? "api.invalidJsonRetry"
-                : "api.invalidJsonRetry";
+          if (retriesLeft <= 0) throw parseErr;
+          const isTruncated =
+            data?.truncated || data?.finishReason === "MAX_TOKENS";
+          const retryKey = isTruncated
+            ? "api.truncatedRetry"
+            : /Unterminated string|Unexpected end of JSON/i.test(
+                  String(parseErr?.message || "")
+                )
+              ? "api.invalidJsonRetry"
+              : "api.invalidJsonRetry";
           return requestOnce(
             [
               ...apiMessages,
@@ -1175,8 +1180,8 @@ export default function App() {
                 content: apiT(locale, retryKey),
               },
             ],
-            false,
-            data?.truncated ? "truncated" : "json"
+            retriesLeft - 1,
+            isTruncated ? "truncated" : "json"
           );
         }
       } catch (err) {
@@ -1192,7 +1197,7 @@ export default function App() {
       }
     };
 
-    return requestOnce(messages, true);
+    return requestOnce(messages, 2);
   }, [locale, systemPrompt, t]);
 
   const finishAnalysis = useCallback(
@@ -1331,7 +1336,7 @@ export default function App() {
         participant: saved.participant,
         skipPrepare: true,
         jsonMode: true,
-        maxTokens: 1536,
+        maxTokens: 2048,
       });
       if (result.type === "question" && result.question) {
         setCurrentQuestion(result.question);
@@ -1389,7 +1394,7 @@ export default function App() {
           structuredAnswers: nextStructured,
           participant,
           jsonMode: true,
-          maxTokens: 1536,
+          maxTokens: 2048,
         });
         const analysisResult = normalizeAnalysis(result);
         const updatedHistory = [

@@ -305,7 +305,7 @@ export const nn = {
     participantBlock:
       "[DELTAKAR]\nNamn: {name}\nAlder: {age}\nE-post: {email}\n\n[ALDERSJUSTERING]\n{guidance}\nTilpass spørsmålstekst og dei fire svaralternativa til alder og livssituasjon. Behold same 15 kategoriar og psykoanalytisk djupn.",
     invalidJsonRetry:
-      "[SYSTEM: Førre svar var ugyldig eller avkorta JSON. Returner KUN eitt gyldig JSON-objekt på éi linje, utan markdown. Bruk \\n for linjeskift i strengar. For neste steg: type question med question, category, questionNumber, options (4 stk).]",
+      "[SYSTEM: Førre svar var ugyldig JSON (ofte uescapede hermeteikn). Returner KUN eitt gyldig JSON-objekt på éi linje. Ikkje bruk \" inne i tekstfelt — bruk « ». type question med question, category, questionNumber, options (4 stk).]",
     truncatedRetry:
       "[SYSTEM: Førre svar vart for langt og avkorta. Returner KUN eitt kompakt JSON-objekt type question på éi linje — IKKJE analysis. Maks ~700 teikn totalt. Korte alternativ og readiness_note.",
     forceAnalysis:

@@ -120,7 +120,8 @@ MAPPING PHASE (default until the app explicitly asks for analysis):
 - List at most 5 missing_categories names; categories_covered is only an array of ids
 
 YOU ALWAYS RESPOND WITH VALID JSON ONLY — no text outside JSON.
-For type "question" and "rephrase": minify on one line, escape \\n and quotes in strings.
+For type "question" and "rephrase": minify on one line, escape \\n and \\" inside strings.
+NEVER put raw ASCII double-quote characters inside JSON string values — use « » or apostrophes in Norwegian/English text instead.
 
 QUESTION FORMAT:
 {"type":"question","question":"...","category":"[exact category name from list]","questionNumber":[number],"options":["alt1","alt2","alt3","alt4"],"categories_covered":[1,2,5],"missing_categories":["..."],"analysis_ready":false,"readiness_note":"${m.readinessLang}"}

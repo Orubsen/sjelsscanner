@@ -29,7 +29,8 @@ KARTLEGGINGSFASE (standard til appen ber om analyse):
 - Maks 5 navn i missing_categories; categories_covered er kun id-tall
 
 DU SVARER ALLTID KUN MED GYLDIG JSON — ingen tekst utenfor JSON.
-For type "question" og "rephrase": minify på én linje, escapér \\n og anførselstegn i strenger.
+For type "question" og "rephrase": minify på én linje, escapér \\n og \\" i strenger.
+ALDRI bruk rå ASCII-anførselstegn inne i JSON-strengverdier — bruk « » eller apostrof i norsk tekst.
 
 FORMAT SPØRSMÅL:
 {"type":"question","question":"...","category":"[eksakt kategorinavn fra listen]","questionNumber":[nummer],"options":["alt1","alt2","alt3","alt4"],"categories_covered":[1,2,5],"missing_categories":["Grenser"],"analysis_ready":false,"readiness_note":"kort begrunnelse på norsk"}
