@@ -78,10 +78,7 @@ export function ContactRosten({ style = {} }) {
 export function ConsentDetails() {
   const { t, brand } = useI18n();
   const privacyHref = "/personvern";
-  const body = t("consent.body", {
-    product: brand.product,
-    company: brand.company,
-  });
+  const body = t("consent.body");
   const linkText = t("consent.privacyLink");
   const parts = body.split(linkText);
   return (

@@ -44,7 +44,7 @@ export const nn = {
   contact: { label: "KONTAKT · ", website: "Heimeside" },
   consent: {
     body:
-      "Eg samtykkjer til at {product} lagrar namn, alder og e-post. Svara mine sendast til {product} for å generere spørsmål og rapport — ikkje til andre føremål enn denne kartlegginga. Eg har lese personvernerklæringa. Behandling i tråd med GDPR.",
+      "Eg godtek personvernerklæringa og samtykkjer til at dataa mine vert brukte til denne kartlegginga.",
     privacyLink: "personvernerklæringa",
     required: "Du må samtykkje til lagring for å starte.",
   },

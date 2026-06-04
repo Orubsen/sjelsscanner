@@ -44,7 +44,7 @@ export const en = {
   contact: { label: "CONTACT · ", website: "Website" },
   consent: {
     body:
-      "I consent to {product} storing my name, age and email. My answers are sent to {product} to generate questions and the report — not for any purpose other than this assessment. I have read the privacy notice. Processing in line with GDPR.",
+      "I accept the privacy notice and consent to my data being used for this assessment.",
     privacyLink: "privacy notice",
     required: "You must consent to storage to start.",
   },
