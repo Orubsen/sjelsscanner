@@ -468,14 +468,30 @@ function QuestionScreen({
   isLoading, opinion, onCloseOpinion, askError, onClearAskError,
   error, onClearError, metaRemaining,
 }) {
-  const { t } = useI18n();
+  const { t, processingLines } = useI18n();
   const [questionReady, setQuestionReady] = useState(false);
   const [hoveredOption, setHoveredOption] = useState(null);
   const [skipTypewriter, setSkipTypewriter] = useState(false);
   const [customMode, setCustomMode] = useState(false);
   const [customText, setCustomText] = useState("");
+  const [processingIndex, setProcessingIndex] = useState(0);
+
+  const lines = processingLines?.length ? processingLines : [t("question.processing")];
+  const processingLabel = lines[processingIndex % lines.length];
 
   useEffect(() => { setQuestionReady(false); setSkipTypewriter(false); }, [question]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setProcessingIndex(0);
+      return;
+    }
+    const id = setInterval(
+      () => setProcessingIndex((i) => (i + 1) % lines.length),
+      2800
+    );
+    return () => clearInterval(id);
+  }, [isLoading, lines.length, questionNumber]);
 
   useEffect(() => {
     if (!question || isLoading) return;
@@ -514,8 +530,8 @@ function QuestionScreen({
 
         <div className="type-question-text" style={{ fontSize: "clamp(15px, 2.5vw, 18px)", lineHeight: 1.7, color: "var(--fg-soft)", fontFamily: "var(--body)", minHeight: 60 }}>
           {isLoading && !question ? (
-            <span style={{ color: "var(--dim)", fontFamily: "var(--mono)", fontSize: 13 }}>
-              {t("question.processing")}<span style={{ animation: "blink 1s infinite" }}>...</span>
+            <span style={{ color: "var(--accent)", fontFamily: "var(--mono)", fontSize: 13, letterSpacing: 0.5 }}>
+              {processingLabel}
             </span>
           ) : skipTypewriter ? (
             <span>{question}</span>
@@ -523,6 +539,21 @@ function QuestionScreen({
             <Typewriter text={question} speed={16} onDone={() => setQuestionReady(true)} />
           )}
         </div>
+        {isLoading && question && (
+          <p
+            style={{
+              marginTop: 12,
+              fontFamily: "var(--mono)",
+              fontSize: 12,
+              color: "var(--accent)",
+              letterSpacing: 0.5,
+              lineHeight: 1.6,
+              animation: "blink 1.2s infinite",
+            }}
+          >
+            {processingLabel}
+          </p>
+        )}
         {question && !questionReady && !isLoading && (
           <button type="button" onClick={() => { setSkipTypewriter(true); setQuestionReady(true); }} style={{ ...btnSmall, marginTop: 8, fontSize: 10 }}>
             {t("question.showFull")}

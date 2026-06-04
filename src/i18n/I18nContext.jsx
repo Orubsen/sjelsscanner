@@ -74,6 +74,7 @@ export function I18nProvider({ children }) {
       frameworkLabels: pack.frameworks,
       frameworkList: pack.frameworkList,
       analyzingPhases: pack.analyzing.phases,
+      processingLines: pack.question.processingLines || [],
       dateLocale: pack.dateLocale,
       privacySections: pack.privacy.sections,
       systemPrompt: getSystemPrompt(locale),
