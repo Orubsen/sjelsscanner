@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from "react";
-import { BRAND } from "./analysisConfig.js";
 import "./theme.css";
 import {
   ADMIN_TOKEN_KEY,
@@ -114,15 +113,9 @@ export default function AdminScreen() {
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "48px 24px 80px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 32 }}>
           <div>
-            <div style={{ fontSize: 10, letterSpacing: 3, color: "var(--accent)", fontFamily: "var(--mono)", marginBottom: 8 }}>
+            <h1 style={{ fontFamily: "var(--mono)", fontSize: 22, fontWeight: 500, letterSpacing: 3, color: "var(--accent)", margin: 0 }}>
               ADMIN
-            </div>
-            <h1 style={{ fontFamily: "var(--mono)", fontSize: 22, fontWeight: 500, letterSpacing: 1 }}>
-              {BRAND.product} · Deltakere
             </h1>
-            <p style={{ marginTop: 8, fontSize: 12, color: "var(--dim)", fontFamily: "var(--mono)" }}>
-              Navn, alder og e-post lagret i Netlify Blobs
-            </p>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <a href="/" style={{ ...btn, textDecoration: "none", display: "inline-block" }}>
@@ -181,9 +174,6 @@ export default function AdminScreen() {
             >
               {loading ? "SJEKKER…" : "LOGG INN"}
             </button>
-            <p style={{ marginTop: 16, fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)", lineHeight: 1.6 }}>
-              Passord settes i Netlify som <code style={{ color: "var(--fg-soft)" }}>PARTICIPANT_ADMIN_SECRET</code>.
-            </p>
           </form>
         ) : (
           <>
