@@ -1,4 +1,4 @@
-import { BRAND, CRISIS_LINES, ESTIMATED_MINUTES } from "./analysisConfig.js";
+import { useI18n } from "./i18n/I18nContext.jsx";
 
 const boxStyle = {
   padding: 14,
@@ -16,15 +16,18 @@ const linkStyle = {
 };
 
 export function EstimatedTimeNote({ style = {} }) {
+  const { t, brand } = useI18n();
+  const { min, max } = brand.estimatedMinutes || { min: 15, max: 30 };
   return (
     <p style={{ ...boxStyle, marginBottom: 16, color: "var(--fg-soft)", ...style }}>
-      <span style={{ color: "var(--accent)", letterSpacing: 1 }}>ESTIMERT TID · </span>
-      ca. {ESTIMATED_MINUTES.min}–{ESTIMATED_MINUTES.max} minutter (avhengig av antall spørsmål før analyse).
+      <span style={{ color: "var(--accent)", letterSpacing: 1 }}>{t("estimatedTime.label")}</span>
+      {t("estimatedTime.text", { min, max })}
     </p>
   );
 }
 
 export function CrisisHelpBox({ compact = false, style = {} }) {
+  const { t, crisisLines } = useI18n();
   return (
     <div
       style={{
@@ -36,13 +39,11 @@ export function CrisisHelpBox({ compact = false, style = {} }) {
       }}
     >
       <div style={{ fontSize: 10, letterSpacing: 2, color: "#fca5a5", marginBottom: 8 }}>
-        TRENGER DU HJELP NÅ?
+        {t("crisis.title")}
       </div>
-      <p style={{ marginBottom: 8, color: "var(--fg-soft)" }}>
-        Sjelsscanner erstatter ikke krisehjelp eller behandling. Ved akutt ubehag eller krise:
-      </p>
+      <p style={{ marginBottom: 8, color: "var(--fg-soft)" }}>{t("crisis.intro")}</p>
       <ul style={{ margin: 0, paddingLeft: 18, color: "var(--fg-soft)" }}>
-        {CRISIS_LINES.map((line) => (
+        {crisisLines.map((line) => (
           <li key={line.label} style={{ marginBottom: 4 }}>
             {line.label}:{" "}
             <a href={line.href} style={linkStyle}>
@@ -56,19 +57,20 @@ export function CrisisHelpBox({ compact = false, style = {} }) {
 }
 
 export function ContactRosten({ style = {} }) {
+  const { t, brand } = useI18n();
   return (
     <p style={{ ...boxStyle, marginBottom: 16, ...style }}>
-      <span style={{ color: "var(--accent)", letterSpacing: 1 }}>KONTAKT · </span>
-      {BRAND.company} —{" "}
-      <a href={`mailto:${BRAND.contactEmail}`} style={linkStyle}>
-        {BRAND.contactEmail}
+      <span style={{ color: "var(--accent)", letterSpacing: 1 }}>{t("contact.label")}</span>
+      {brand.company} —{" "}
+      <a href={`mailto:${brand.contactEmail}`} style={linkStyle}>
+        {brand.contactEmail}
       </a>
-      {BRAND.websiteUrl ? (
+      {brand.websiteUrl ? (
         <>
           {" "}
           ·{" "}
-          <a href={BRAND.websiteUrl} style={linkStyle} target="_blank" rel="noopener noreferrer">
-            {BRAND.websiteLabel || "rubenrøsten.no"}
+          <a href={brand.websiteUrl} style={linkStyle} target="_blank" rel="noopener noreferrer">
+            {brand.websiteLabel || "rubenrøsten.no"}
           </a>
         </>
       ) : null}
@@ -77,15 +79,21 @@ export function ContactRosten({ style = {} }) {
 }
 
 export function ConsentDetails() {
+  const { t, brand } = useI18n();
+  const privacyHref = "/personvern";
+  const body = t("consent.body", {
+    product: brand.product,
+    company: brand.company,
+  });
+  const linkText = t("consent.privacyLink");
+  const parts = body.split(linkText);
   return (
     <span>
-      Jeg samtykker til at {BRAND.product} lagrer navn, alder og e-post hos {BRAND.company} (Netlify,
-      EU/US avhengig av hosting). Mine svar sendes til <strong style={{ color: "var(--fg-soft)" }}>Google Gemini</strong>{" "}
-      for å generere spørsmål og rapport — ikke til andre formål enn denne kartleggingen. Jeg har lest{" "}
-      <a href="/personvern" style={linkStyle}>
-        personvernerklæringen
+      {parts[0]}
+      <a href={privacyHref} style={linkStyle}>
+        {linkText}
       </a>
-      . Behandling i tråd med GDPR.
+      {parts[1] || ""}
     </span>
   );
 }

@@ -7,6 +7,8 @@ import {
   participantsToCsv,
   downloadCsv,
 } from "./participantApi.js";
+import { useI18n } from "./i18n/I18nContext.jsx";
+import { LanguageSwitcher } from "./i18n/LanguageSwitcher.jsx";
 
 const btn = {
   background: "transparent",
@@ -25,10 +27,10 @@ const btnPrimary = {
   color: "var(--accent)",
 };
 
-function formatDate(iso) {
+function formatDate(iso, dateLocale) {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleString("nb-NO", {
+    return new Date(iso).toLocaleString(dateLocale || "nb-NO", {
       dateStyle: "short",
       timeStyle: "short",
     });
@@ -38,6 +40,7 @@ function formatDate(iso) {
 }
 
 export default function AdminScreen() {
+  const { t, dateLocale } = useI18n();
   const [token, setToken] = useState(() => sessionStorage.getItem(ADMIN_TOKEN_KEY) || "");
   const [password, setPassword] = useState("");
   const [rows, setRows] = useState([]);
@@ -51,15 +54,15 @@ export default function AdminScreen() {
       const list = await fetchParticipantsList(adminToken);
       setRows(list);
     } catch (e) {
-      setError(e?.message || "Kunne ikke hente deltakere.");
-      if (/401|ugyldig|manglende/i.test(String(e?.message))) {
+      setError(e?.message || t("admin.fetchFailed"));
+      if (/401|ugyldig|manglende|invalid/i.test(String(e?.message))) {
         sessionStorage.removeItem(ADMIN_TOKEN_KEY);
         setToken("");
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (token) loadList(token);
@@ -75,7 +78,7 @@ export default function AdminScreen() {
       setToken(password);
       setPassword("");
     } catch (err) {
-      setError(err?.message || "Innlogging feilet.");
+      setError(err?.message || t("admin.loginFailed"));
     } finally {
       setLoading(false);
     }
@@ -92,6 +95,13 @@ export default function AdminScreen() {
     const stamp = new Date().toISOString().slice(0, 10);
     downloadCsv(`sjelsscanner-deltakere-${stamp}.csv`, participantsToCsv(rows));
   };
+
+  const countLabel =
+    rows.length === 1
+      ? t("admin.count", { n: rows.length })
+      : t("admin.countPlural", { n: rows.length });
+
+  const colKeys = ["name", "age", "email", "registered", "completed", "id"];
 
   return (
     <div className="app-root">
@@ -114,23 +124,24 @@ export default function AdminScreen() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 32 }}>
           <div>
             <h1 style={{ fontFamily: "var(--mono)", fontSize: 22, fontWeight: 500, letterSpacing: 3, color: "var(--accent)", margin: 0 }}>
-              ADMIN
+              {t("admin.title")}
             </h1>
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <LanguageSwitcher compact />
             <a href="/" style={{ ...btn, textDecoration: "none", display: "inline-block" }}>
-              ← SCANNER
+              {t("admin.backScanner")}
             </a>
             {token && (
               <>
                 <button type="button" style={btn} onClick={() => loadList(token)} disabled={loading}>
-                  {loading ? "HENTER…" : "OPPDATER"}
+                  {loading ? t("admin.refreshing") : t("admin.refresh")}
                 </button>
                 <button type="button" style={btnPrimary} onClick={handleExport} disabled={!rows.length}>
-                  EKSPORTER CSV
+                  {t("admin.exportCsv")}
                 </button>
                 <button type="button" style={btn} onClick={handleLogout}>
-                  LOGG UT
+                  {t("admin.logout")}
                 </button>
               </>
             )}
@@ -149,7 +160,7 @@ export default function AdminScreen() {
             style={{ maxWidth: 360, padding: 24, border: "1px solid var(--border)", background: "var(--surface)" }}
           >
             <label style={{ display: "block", fontSize: 10, letterSpacing: 2, color: "var(--dim)", fontFamily: "var(--mono)", marginBottom: 8 }}>
-              ADMIN-PASSORD
+              {t("admin.passwordLabel")}
             </label>
             <input
               type="password"
@@ -172,21 +183,21 @@ export default function AdminScreen() {
               disabled={!password || loading}
               style={{ ...btnPrimary, width: "100%", padding: "12px", opacity: password && !loading ? 1 : 0.5 }}
             >
-              {loading ? "SJEKKER…" : "LOGG INN"}
+              {loading ? t("admin.checking") : t("admin.login")}
             </button>
           </form>
         ) : (
           <>
             <p style={{ marginBottom: 16, fontSize: 12, color: "var(--dim)", fontFamily: "var(--mono)" }}>
-              {rows.length} registrering{rows.length === 1 ? "" : "er"} (nyeste først)
+              {countLabel}{t("admin.countSuffix")}
             </p>
             <div style={{ overflowX: "auto", border: "1px solid var(--border)" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--mono)", fontSize: 11 }}>
                 <thead>
                   <tr style={{ background: "var(--surface)", textAlign: "left" }}>
-                    {["Navn", "Alder", "E-post", "Registrert", "Fullført", "ID"].map((h) => (
+                    {colKeys.map((key) => (
                       <th
-                        key={h}
+                        key={key}
                         style={{
                           padding: "10px 12px",
                           borderBottom: "1px solid var(--border)",
@@ -195,7 +206,7 @@ export default function AdminScreen() {
                           fontWeight: 500,
                         }}
                       >
-                        {h}
+                        {t(`admin.cols.${key}`)}
                       </th>
                     ))}
                   </tr>
@@ -204,7 +215,7 @@ export default function AdminScreen() {
                   {rows.length === 0 && !loading && (
                     <tr>
                       <td colSpan={6} style={{ padding: 24, color: "var(--dim)", textAlign: "center" }}>
-                        Ingen deltakere lagret ennå.
+                        {t("admin.empty")}
                       </td>
                     </tr>
                   )}
@@ -217,9 +228,9 @@ export default function AdminScreen() {
                           {r.email || "—"}
                         </a>
                       </td>
-                      <td style={{ padding: "10px 12px", color: "var(--dim)" }}>{formatDate(r.createdAt)}</td>
+                      <td style={{ padding: "10px 12px", color: "var(--dim)" }}>{formatDate(r.createdAt, dateLocale)}</td>
                       <td style={{ padding: "10px 12px", color: r.analysisCompleted ? "var(--accent)" : "var(--dim-2)" }}>
-                        {r.analysisCompleted ? "Ja" : "Nei"}
+                        {r.analysisCompleted ? t("admin.yes") : t("admin.no")}
                       </td>
                       <td style={{ padding: "10px 12px", color: "var(--dim-2)", fontSize: 9 }}>{r.id}</td>
                     </tr>

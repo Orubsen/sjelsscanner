@@ -1,0 +1,309 @@
+/** Bokmål UI and API message strings */
+export const nb = {
+  brand: {
+    name: "Røsten",
+    product: "Sjelsscanner",
+    company: "RØSTEN ENT",
+    tagline: "Kirurgisk psykoanalytisk kartlegging — ikke en personlighetstest.",
+    developedBy: "Utviklet av {company}. · {product}",
+    contactEmail: "kontakt@xn--rubenrsten-5cb.no",
+    websiteUrl: "https://rubenrøsten.no",
+    websiteLabel: "rubenrøsten.no",
+    siteUrl: "https://sjelescanner.netlify.app",
+    rightsReserved: "Alle rettigheter reservert.",
+  },
+  frameworks: {
+    attachment: "Tilknytning",
+    defense_mechanisms: "Forsvarsmekanismer",
+    jungian_archetypes: "Jungianske arketyper",
+    freudian_analysis: "Freudiansk analyse",
+    ace_impact: "ACE-påvirkning",
+  },
+  frameworkList: [
+    "Big Five",
+    "Tilknytningsteori",
+    "Forsvarsmekanismer",
+    "Jungian arketyper",
+    "Freudiansk analyse",
+    "ACE-forskning",
+  ],
+  crisis: {
+    title: "TRENGER DU HJELP NÅ?",
+    intro:
+      "Sjelsscanner erstatter ikke krisehjelp eller behandling. Ved akutt ubehag eller krise:",
+    lines: [
+      { label: "Mental Helse – Hjelpetelefonen", value: "116 123", href: "tel:116123" },
+      { label: "Akutt medisinsk nødhjelp", value: "113", href: "tel:113" },
+    ],
+  },
+  estimatedMinutes: { min: 15, max: 30 },
+  estimatedTime: {
+    label: "ESTIMERT TID · ",
+    text: "ca. {min}–{max} minutter (avhengig av antall spørsmål før analyse).",
+  },
+  contact: {
+    label: "KONTAKT · ",
+  },
+  consent: {
+    body:
+      "Jeg samtykker til at {product} lagrer navn, alder og e-post hos {company} (Netlify, EU/US avhengig av hosting). Mine svar sendes til Google Gemini for å generere spørsmål og rapport — ikke til andre formål enn denne kartleggingen. Jeg har lest personvernerklæringen. Behandling i tråd med GDPR.",
+    privacyLink: "personvernerklæringen",
+    required: "Du må samtykke til lagring for å starte.",
+  },
+  validation: {
+    nameMin: "Skriv minst 2 tegn.",
+    ageRange: "Alder må være {min}–{max}.",
+    emailInvalid: "Ugyldig e-postadresse.",
+  },
+  ageGuidance: {
+    default: "Tilpass språk til voksen deltaker.",
+    under20:
+      "Deltaker er ung voksen (under 20). Bruk klart, respektfullt språk uten nedlatende tone. Eksempler og alternativer kan knyttes til skole, venner, familie og tidlig identitetsutforskning — ikke barnespråk.",
+    age20_29:
+      "Deltaker er 20–29. Tilpass formuleringer til tidlig voksenliv: studier, karrierestart, partnerskap, autonomi vs. tilhørighet.",
+    age30_44:
+      "Deltaker er 30–44. Tilpass til etablert voksenliv: arbeid, relasjoner, ansvar, langsiktige mønstre.",
+    age45_59:
+      "Deltaker er 45–59. Tilpass til midtliv: erfaring, prioriteringer, relasjons- og karrieremønstre over tid.",
+    age60plus:
+      "Deltaker er 60+. Respekter livserfaring; unngå forenkling. Formuler alternativer som kan gjelde langvarige mønstre, helse og livsfase — aldri aldersdiskriminerende eller nedlatende.",
+  },
+  footer: {
+    privacy: "Personvern",
+    contact: "Kontakt",
+    crisis: "Krise 116 123",
+  },
+  lang: {
+    label: "Språk",
+  },
+  intro: {
+    version: "PSYKOANALYTISK SYSTEM v2.4.1",
+    titleLine1: "SJELS",
+    titleLine2: "SCANNER",
+    hint: "Velg det alternativet som ligner mest på deg. Systemet er designet for å identifisere selvbedrag.",
+    beforeStart: "FØR VI STARTER",
+    name: "NAVN",
+    age: "ALDER",
+    email: "E-POST",
+    namePlaceholder: "Fornavn og etternavn",
+    emailPlaceholder: "din@epost.no",
+    questionsFromTitle: "HVOR KOMMER SPØRSMÅLENE FRA?",
+    questionsFromBody:
+      "Spørsmålene lages underveis av Sjelsscanner — ikke hentet fra en fast testbok eller quiz. For hver person velger systemet neste spørsmål ut fra det du allerede har svart, med utgangspunkt i etablerte psykologiske rammeverk og 15 tematiske områder (bl.a. barndom, tilknytning, grenser og skyggesiden). Du får ett spørsmål om gangen med fire alternativer; antall spørsmål tilpasses individuelt, vanligvis mellom {minQ} og {maxQ}.",
+    savedSessionTitle: "PÅBEGYNT ANALYSE FUNNET",
+    savedSessionBody: "Spørsmål {n} · {covered}/{total} kategorier dekket",
+    continue: "FORTSETT",
+    startFresh: "START PÅ NYTT",
+    saving: "LAGRER OG STARTER…",
+    newAnalysis: "NY ANALYSE",
+    start: "INITIER ANALYSE",
+    disclaimer:
+      "⚠ Ikke diagnose eller behandling. Antall spørsmål tilpasses individuelt (opp til {maxQ}).",
+  },
+  progress: {
+    dataCollection: "DATAINNSAMLING",
+    progress: "FREMDRIFT",
+    questionShort: "SPM",
+    categoryCoverage: "KATEGORIDEKNING",
+    readyPrefix: "◆ Klar for analyse: ",
+    pendingPrefix: "○ ",
+  },
+  question: {
+    categoryFallback: "ANALYSE",
+    questionShort: "SPM",
+    processing: "PROSESSERER",
+    showFull: "VIS HELE SPØRSMÅLET",
+    customOption: "E — Ingen passer helt · skriv eget svar",
+    customTitle: "EGET SVAR",
+    customPlaceholder: "Beskriv kort det som passer best for deg...",
+    cancel: "AVBRYT",
+    sendAnswer: "SEND SVAR",
+    psychologistOpinion: "◆ PSYKOLOGENS MENING",
+    askPsychologist: "SPØR PSYKOLOGEN",
+    askPlaceholder: "Hva mener du om...?",
+    waiting: "VENTER...",
+    ask: "SPØR",
+    askBtn: "◆ Spør psykologen",
+    rephraseBtn: "↻ Omformuler spørsmålet",
+    metaLimit: "Maks {limit} ekstra forespørsler per analyse er brukt opp.",
+    retryAnalysis: "Prøv analyse igjen",
+    readyForAnalysis: "PSYKOLOGEN VURDERER AT DET ER NOK DATA FOR ANALYSE",
+    canRequestAnalysis: "DU KAN BE OM ANALYSE (MIN. {min} SPØRSMÅL)",
+    getAnalysisNow: "▶ FÅ ANALYSEN NÅ",
+  },
+  analyzing: {
+    phases: [
+      "KOMPRIMERER SVAR",
+      "KARTLEGGER MØNSTRE",
+      "IDENTIFISERER SPENNINGER",
+      "BYGGER RAMMEVERK",
+      "GENERERER RAPPORT",
+    ],
+    processingAnswers: "Behandler {count} strukturerte svar",
+    retry: "Prøv igjen",
+    step1: "Steg 1/2: Komprimerer svar…",
+    step2: "Steg 2/2: Genererer rapport…",
+    reportReady: "Rapport klar",
+  },
+  report: {
+    complete: "ANALYSE KOMPLETT",
+    titleLine1: "PSYKOANALYTISK",
+    titleLine2: "RAPPORT",
+    disclaimer:
+      "⚠ Dette er ikke diagnose, behandling eller klinisk vurdering av helsepersonell. Rapporten er en strukturert AI-kartlegging basert på dine svar.",
+    shortSummary: "KORTVERSJON",
+    copyShort: "Kopier kortversjon",
+    tabFull: "Helhetsrapport",
+    tabFrameworks: "Etter rammeverk",
+    overallInsight: "OVERORDNET INNSIKT",
+    conflicts: "SPENNINGER I SVARENE",
+    clinicalFollowup: "KLINISK VIDERE UTFORSKING",
+    keyThemes: "NØKKELTEMAER",
+    frameworkSummaries: "RAMMEVERK-OPPSUMMERINGER",
+    keyPatterns: "Nøkkelmønstre: ",
+    evidence: "Belegg: ",
+    questionRef: "— spm. {n}",
+    observation: "Observasjon · ",
+    interpretation: "Tolkning · ",
+    uncertainty: "Usikkerhet · ",
+    noSectionContent: "(ingen innhold under denne overskriften)",
+    missingSections:
+      "Rapporten manglet forventede ##-seksjoner. Se råtekst nedenfor.",
+    noReportText: "Ingen rapporttekst mottatt. Start på nytt eller prøv å generere analysen igjen.",
+    copyRaw: "KOPIER RÅTEKST",
+    downloadPdf: "LAST NED SOM PDF",
+    generatingPdf: "GENERERER PDF…",
+    showRaw: "VIS",
+    hideRaw: "SKJUL",
+    rawText: "RÅTEKST",
+    newAnalysis: "NY ANALYSE",
+    noCopyContent: "Ingen rapportinnhold.",
+    pdfFilenamePrefix: "Røsten-Sjelsscanner-rapport",
+  },
+  errors: {
+    analysisInterrupted:
+      "Analysen ble avbrutt. Prøv «Få analysen nå» eller svar på flere spørsmål.",
+    requestTimeout: "Forespørselen tok for lang tid. Prøv igjen.",
+    analysisTimeout: "Analysen tok for lang tid. Sjekk nettverket og prøv igjen.",
+    analysisFailed: "Analyse feilet.",
+    analysisNotGenerated:
+      "Analysen ble ikke generert. Prøv igjen eller svar på noen flere spørsmål.",
+    fillParticipant: "Fyll inn navn, alder og gyldig e-post før du starter.",
+    consentRequired: "Du må samtykke til lagring av opplysningene før du starter.",
+    startFailed: "Kunne ikke starte analysen (ugyldig svar fra modellen). Prøv igjen.",
+    startNetwork: "Kunne ikke starte analysen. Sjekk API-nøkkel og nettverk.",
+    unexpectedResponse: "Uventet svar fra psykologen. Du kan fortsette eller be om analyse.",
+    couldNotRead: "Kunne ikke lese svar ({detail}).",
+    fetchFailed: "Kunne ikke hente svar fra psykologen.",
+    opinionFailed: "Kunne ikke hente psykologens svar. Prøv igjen.",
+    generateFailed: "Kunne ikke generere svar. Prøv igjen.",
+    metaLimit: "Maks {limit} ekstra forespørsler per analyse.",
+  },
+  privacy: {
+    title: "PERSONVERNERKLÆRING",
+    back: "← TILBAKE TIL {product}",
+    updated: "Sist oppdatert",
+    sections: {
+      controller: {
+        title: "BEHANDLINGSANSVARLIG",
+        body:
+          "{company} ({name}) er behandlingsansvarlig for personopplysninger du oppgir i {product}. Kontakt:",
+      },
+      data: {
+        title: "HVILKE DATA VI SAMLER INN",
+        items: [
+          "Navn, alder og e-post (når du starter kartleggingen)",
+          "Dine svar på spørsmål og den genererte rapporten (lagres lokalt i nettleseren under økten)",
+          "Tekniske data via hosting (Netlify), f.eks. IP-adresse i serverlogger",
+        ],
+      },
+      purpose: {
+        title: "FORMÅL OG RETTSLIG GRUNNLAG",
+        body:
+          "Vi behandler opplysningene for å gjennomføre kartleggingen du ber om, lagre registrering for oppfølging, og forbedre tjenesten. Grunnlag: ditt samtykke (GDPR art. 6 nr. 1 bokstav a) og berettiget interesse i sikker drift.",
+      },
+      gemini: {
+        title: "GOOGLE GEMINI (AI)",
+        body:
+          "Spørsmål og svar sendes til Google Gemini (Googles API) for å generere neste spørsmål og den psykoanalytiske rapporten. Google kan behandle data i henhold til sine vilkår. Vi sender ikke data til andre AI-leverandører for denne tjenesten. Ikke oppgi sensitive personopplysninger du ikke ønsker delt med AI-systemet.",
+      },
+      storage: {
+        title: "LAGRING OG HOSTING",
+        body:
+          "Navn, alder og e-post lagres i Netlify Blobs (hosting hos Netlify). Økt-data (spørsmål/svar underveis) lagres primært lokalt på din enhet til du avslutter eller sletter nettleserdata. Ved fullført analyse markeres registreringen som fullført i vårt system.",
+      },
+      retention: {
+        title: "HVOR LENGE VI LAGRER",
+        body:
+          "Deltakerregistreringer beholdes til du ber om sletting eller vi gjennomfører rutinemessig opprydding. Ta kontakt på e-post for sletting av dine opplysninger.",
+      },
+      rights: {
+        title: "DINE RETTIGHETER",
+        body:
+          "Du kan be om innsyn, retting, sletting, begrensning, dataportabilitet og å trekke tilbake samtykke. Klage kan sendes til Datatilsynet. Kontakt oss først på",
+      },
+      notHealthcare: {
+        title: "IKKE HELSETJENESTE",
+        body: "{product} er ikke diagnose, behandling eller akutt hjelp. Ved krise, bruk nødnumrene under.",
+      },
+    },
+    footerScanner: "Scanner",
+    footerPrivacy: "Personvern",
+  },
+  admin: {
+    title: "ADMIN",
+    backScanner: "← SCANNER",
+    refresh: "OPPDATER",
+    refreshing: "HENTER…",
+    exportCsv: "EKSPORTER CSV",
+    logout: "LOGG UT",
+    passwordLabel: "ADMIN-PASSORD",
+    login: "LOGG INN",
+    checking: "SJEKKER…",
+    loginFailed: "Innlogging feilet.",
+    fetchFailed: "Kunne ikke hente deltakere.",
+    count: "{n} registrering",
+    countPlural: "{n} registreringer",
+    countSuffix: " (nyeste først)",
+    empty: "Ingen deltakere lagret ennå.",
+    cols: {
+      name: "Navn",
+      age: "Alder",
+      email: "E-post",
+      registered: "Registrert",
+      completed: "Fullført",
+      id: "ID",
+    },
+    yes: "Ja",
+    no: "Nei",
+  },
+  api: {
+    noAnswersYet: "(ingen strukturerte svar ennå)",
+    answerLine: "#{index} [{category}] Spørsmål: {question}\nSvar: {answer}{custom}",
+    customSuffix: " (eget svar)",
+    answerMsg: "[Svar på spm {n} ({category}): {text}]",
+    unknownCategory: "ukjent kategori",
+    contextMsg:
+      "[Kontekst fra app: Dette er svar #{n}. Maks {max} spørsmål totalt. Minst {min} før analyse kan foreslås. Vurder dekning av 15 kategorier individuelt denne gangen.]",
+    sessionMsg:
+      "[SESSION] {n} svar registrert. Neste steg: still spørsmål {next} (JSON type question). Dekket kategori-id: [{covered}].",
+    noneCovered: "ingen",
+    structuredAnswers: "STRUKTURERTE SVAR:",
+    participantBlock:
+      "[DELTAKER]\nNavn: {name}\nAlder: {age}\nE-post: {email}\n\n[ALDERSJUSTERING]\n{guidance}\nTilpass spørsmålstekst og de fire svaralternativene til alder og livssituasjon. Behold samme 15 kategorier og psykoanalytisk dybde.",
+    invalidJsonRetry:
+      "[SYSTEM: Forrige svar var ugyldig eller avkuttet JSON. Returner KUN ett gyldig JSON-objekt på én linje, uten markdown. Bruk \\n for linjeskift i strenger. For neste steg: type question med question, category, questionNumber, options (4 stk).]",
+    forceAnalysis:
+      "[SYSTEM: Dette er svar på spm {n}/{max}. Generer analysis NÅ — ikke flere spørsmål.]",
+    generateAnalysis: "[Generer full analyse]",
+    startSession:
+      "Start analysen. Still spørsmål 1 med 4 alternativer. Maks {max} spørsmål totalt — antall før analyse vurderes individuelt. Tilpass språk til deltakerens alder.",
+    metaOpinion: "[META-SPØRSMÅL – ikke svar på aktivt spørsmål. JSON opinion-format]: {q}",
+    metaRephrase:
+      "[Omformuler spm {n} enklere. rephrase-format, samme kategori, 4 nye alternativer.]",
+    analysisRetry:
+      "[KRITISK: Returner full analysis JSON nå. Obligatorisk: frameworks med quote og question_index, short_summary, conflicts, clinical_followup, analysis med ## og Observasjon/Tolkning/Usikkerhet.]",
+  },
+  dateLocale: "nb-NO",
+  htmlLang: "no",
+};

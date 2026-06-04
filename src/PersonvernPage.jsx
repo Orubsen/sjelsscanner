@@ -1,5 +1,6 @@
-import { BRAND } from "./analysisConfig.js";
 import { CrisisHelpBox, ContactRosten } from "./SiteExtras.jsx";
+import { useI18n } from "./i18n/I18nContext.jsx";
+import { LanguageSwitcher } from "./i18n/LanguageSwitcher.jsx";
 import "./theme.css";
 
 const section = {
@@ -19,6 +20,9 @@ const h2style = {
 };
 
 export default function PersonvernPage() {
+  const { t, brand, dateLocale, privacySections } = useI18n();
+  const updated = new Date().toLocaleDateString(dateLocale || "nb-NO");
+
   return (
     <div className="app-root">
       <style>{`
@@ -38,20 +42,21 @@ export default function PersonvernPage() {
         className="layout-shell"
         style={{ maxWidth: 720, margin: "0 auto", padding: "48px 24px 80px", width: "100%" }}
       >
-        <a
-          href="/"
-          style={{
-            fontFamily: "var(--mono)",
-            fontSize: 10,
-            letterSpacing: 2,
-            color: "var(--dim)",
-            textDecoration: "none",
-            display: "inline-block",
-            marginBottom: 24,
-          }}
-        >
-          ← TILBAKE TIL {BRAND.product.toUpperCase()}
-        </a>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
+          <a
+            href="/"
+            style={{
+              fontFamily: "var(--mono)",
+              fontSize: 10,
+              letterSpacing: 2,
+              color: "var(--dim)",
+              textDecoration: "none",
+            }}
+          >
+            {t("privacy.back", { product: brand.product.toUpperCase() })}
+          </a>
+          <LanguageSwitcher />
+        </div>
 
         <h1
           style={{
@@ -62,83 +67,62 @@ export default function PersonvernPage() {
             marginBottom: 8,
           }}
         >
-          PERSONVERNERKLÆRING
+          {t("privacy.title")}
         </h1>
         <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--dim)", marginBottom: 32 }}>
-          {BRAND.company} · {BRAND.product} · Sist oppdatert {new Date().toLocaleDateString("nb-NO")}
+          {brand.company} · {brand.product} · {t("privacy.updated")} {updated}
         </p>
 
         <CrisisHelpBox />
 
         <section style={section}>
-          <h2 style={h2style}>BEHANDLINGSANSVARLIG</h2>
+          <h2 style={h2style}>{privacySections.controller.title}</h2>
           <p>
-            {BRAND.company} ({BRAND.name}) er behandlingsansvarlig for personopplysninger du oppgir i{" "}
-            {BRAND.product}. Kontakt:{" "}
-            <a href={`mailto:${BRAND.contactEmail}`}>{BRAND.contactEmail}</a>.
+            {t("privacy.sections.controller.body", { company: brand.company, name: brand.name, product: brand.product })}{" "}
+            <a href={`mailto:${brand.contactEmail}`}>{brand.contactEmail}</a>.
           </p>
         </section>
 
         <section style={section}>
-          <h2 style={h2style}>HVILKE DATA VI SAMLER INN</h2>
+          <h2 style={h2style}>{privacySections.data.title}</h2>
           <ul style={{ paddingLeft: 20 }}>
-            <li>Navn, alder og e-post (når du starter kartleggingen)</li>
-            <li>Dine svar på spørsmål og den genererte rapporten (lagres lokalt i nettleseren under økten)</li>
-            <li>Tekniske data via hosting (Netlify), f.eks. IP-adresse i serverlogger</li>
+            {privacySections.data.items.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
           </ul>
         </section>
 
         <section style={section}>
-          <h2 style={h2style}>FORMÅL OG RETTSLIG GRUNNLAG</h2>
+          <h2 style={h2style}>{privacySections.purpose.title}</h2>
+          <p>{privacySections.purpose.body}</p>
+        </section>
+
+        <section style={section}>
+          <h2 style={h2style}>{privacySections.gemini.title}</h2>
+          <p>{privacySections.gemini.body}</p>
+        </section>
+
+        <section style={section}>
+          <h2 style={h2style}>{privacySections.storage.title}</h2>
+          <p>{privacySections.storage.body}</p>
+        </section>
+
+        <section style={section}>
+          <h2 style={h2style}>{privacySections.retention.title}</h2>
+          <p>{privacySections.retention.body}</p>
+        </section>
+
+        <section style={section}>
+          <h2 style={h2style}>{privacySections.rights.title}</h2>
           <p>
-            Vi behandler opplysningene for å gjennomføre kartleggingen du ber om, lagre registrering for
-            oppfølging, og forbedre tjenesten. Grunnlag: ditt samtykke (GDPR art. 6 nr. 1 bokstav a) og
-            berettiget interesse i sikker drift.
+            {privacySections.rights.body}{" "}
+            <a href={`mailto:${brand.contactEmail}`}>{brand.contactEmail}</a>.
           </p>
         </section>
 
         <section style={section}>
-          <h2 style={h2style}>GOOGLE GEMINI (AI)</h2>
-          <p>
-            Spørsmål og svar sendes til <strong>Google Gemini</strong> (Googles API) for å generere neste
-            spørsmål og den psykoanalytiske rapporten. Google kan behandle data i henhold til sine vilkår.
-            Vi sender ikke data til andre AI-leverandører for denne tjenesten. Ikke oppgi sensitive
-            personopplysninger du ikke ønsker delt med AI-systemet.
-          </p>
-        </section>
-
-        <section style={section}>
-          <h2 style={h2style}>LAGRING OG HOSTING</h2>
-          <p>
-            Navn, alder og e-post lagres i <strong>Netlify Blobs</strong> (hosting hos Netlify). Økt-data
-            (spørsmål/svar underveis) lagres primært lokalt på din enhet til du avslutter eller sletter
-            nettleserdata. Ved fullført analyse markeres registreringen som fullført i vårt system.
-          </p>
-        </section>
-
-        <section style={section}>
-          <h2 style={h2style}>HVOR LENGE VI LAGRER</h2>
-          <p>
-            Deltakerregistreringer beholdes til du ber om sletting eller vi gjennomfører rutinemessig
-            opprydding. Ta kontakt på e-post for sletting av dine opplysninger.
-          </p>
-        </section>
-
-        <section style={section}>
-          <h2 style={h2style}>DINE RETTIGHETER</h2>
-          <p>
-            Du kan be om innsyn, retting, sletting, begrensning, dataportabilitet og å trekke tilbake
-            samtykke. Klage kan sendes til Datatilsynet. Kontakt oss først på{" "}
-            <a href={`mailto:${BRAND.contactEmail}`}>{BRAND.contactEmail}</a>.
-          </p>
-        </section>
-
-        <section style={section}>
-          <h2 style={h2style}>IKKE HELSETJENESTE</h2>
-          <p>
-            {BRAND.product} er ikke diagnose, behandling eller akutt hjelp. Ved krise, bruk
-            nødnumrene under.
-          </p>
+          <h2 style={h2style}>{privacySections.notHealthcare.title}</h2>
+          <p>{t("privacy.sections.notHealthcare.body", { product: brand.product })}</p>
         </section>
 
         <ContactRosten />
@@ -160,10 +144,10 @@ export default function PersonvernPage() {
         }}
       >
         <a href="/" style={{ color: "var(--dim)", marginRight: 16 }}>
-          Scanner
+          {t("privacy.footerScanner")}
         </a>
         <a href="/personvern" style={{ color: "var(--accent)" }}>
-          Personvern
+          {t("privacy.footerPrivacy")}
         </a>
       </footer>
     </div>

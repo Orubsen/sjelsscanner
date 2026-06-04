@@ -1,17 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { parseLlmJson, parseApiResponse } from "./jsonUtils.js";
-import { buildReportPlainText, downloadReportPdf, reportPdfFilename } from "./reportExport.js";
+import { buildReportPlainText, downloadReportPdf } from "./reportExport.js";
 import {
   STORAGE_KEY,
   MAX_QUESTIONS,
   MIN_QUESTIONS_SUGGEST,
   META_CALL_LIMIT,
-  BRAND,
-  CATEGORIES,
-  FRAMEWORK_LABELS,
   FRAMEWORK_ORDER,
 } from "./analysisConfig.js";
-import { SYSTEM_PROMPT } from "./systemPrompt.js";
+import { useI18n } from "./i18n/I18nContext.jsx";
+import { LanguageSwitcher } from "./i18n/LanguageSwitcher.jsx";
+import { apiT } from "./i18n/apiMessages.js";
 import {
   normalizeAnalysis,
   formatStructuredAnswersForApi,
@@ -100,14 +99,15 @@ function Typewriter({ text, speed = 18, onDone }) {
 }
 
 function ProgressBar({ current, maxQuestions, coveredCategoryIds }) {
+  const { t } = useI18n();
   const questionPct = Math.min(100, (current / maxQuestions) * 100);
   const overallPct = computeSessionProgressPercent(current, coveredCategoryIds);
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 11, color: "var(--dim)", letterSpacing: 2, flexWrap: "wrap", gap: 8 }}>
-        <span>DATAINNSAMLING</span>
+        <span>{t("progress.dataCollection")}</span>
         <span>
-          FREMDRIFT {overallPct}% · SPM {current}/{maxQuestions}
+          {t("progress.progress")} {overallPct}% · {t("progress.questionShort")} {current}/{maxQuestions}
         </span>
       </div>
       <div style={{ height: 2, background: "var(--surface)", overflow: "hidden", marginBottom: 6 }}>
@@ -144,14 +144,15 @@ const btnSmall = {
 };
 
 function CategoryProgress({ coveredCategoryIds, analysisReady, readinessNote }) {
+  const { t, categories } = useI18n();
   const covered = new Set(coveredCategoryIds || []);
   return (
     <div style={{ marginBottom: 20, padding: 12, border: "1px solid var(--border)", background: "var(--surface)" }}>
       <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--dim)", fontFamily: "var(--mono)", marginBottom: 8 }}>
-        KATEGORIDEKNING ({covered.size}/{CATEGORIES.length})
+        {t("progress.categoryCoverage")} ({covered.size}/{categories.length})
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {CATEGORIES.map((c) => (
+        {categories.map((c) => (
           <span
             key={c.id}
             title={c.name}
@@ -170,7 +171,7 @@ function CategoryProgress({ coveredCategoryIds, analysisReady, readinessNote }) 
       </div>
       {readinessNote && (
         <div style={{ marginTop: 8, fontSize: 11, color: analysisReady ? "var(--accent)" : "var(--dim)", fontFamily: "var(--mono)", lineHeight: 1.5 }}>
-          {analysisReady ? "◆ Klar for analyse: " : "○ "}{readinessNote}
+          {analysisReady ? t("progress.readyPrefix") : t("progress.pendingPrefix")}{readinessNote}
         </div>
       )}
     </div>
@@ -190,6 +191,7 @@ const introFieldStyle = {
 };
 
 function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialParticipant, isStarting }) {
+  const { t, brand, locale, frameworkList } = useI18n();
   const [glitch, setGlitch] = useState(false);
   const [name, setName] = useState(initialParticipant?.name || "");
   const [age, setAge] = useState(
@@ -199,7 +201,7 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
   const [consent, setConsent] = useState(Boolean(initialParticipant?.id));
   const [touched, setTouched] = useState(false);
 
-  const validation = validateParticipant({ name, age, email });
+  const validation = validateParticipant({ name, age, email }, locale);
   const canStart = validation.valid && consent;
 
   useEffect(() => {
@@ -214,24 +216,27 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
   };
 
   return (
-    <div className="layout-shell layout-shell--intro" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: 32, textAlign: "center", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+    <div className="layout-shell layout-shell--intro" style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: 32, textAlign: "center", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+      <div style={{ position: "absolute", top: 16, left: 16, zIndex: 10, pointerEvents: "auto" }}>
+        <LanguageSwitcher />
+      </div>
       <IntroBrandMark />
       <div className="type-mono-sm" style={{ marginBottom: 16, fontSize: 11, letterSpacing: 4, color: "var(--accent-dim)", fontFamily: "var(--mono)" }}>
-        PSYKOANALYTISK SYSTEM v2.4.1
+        {t("intro.version")}
       </div>
       <h1 className="type-display-title" style={{ fontSize: "clamp(2rem, 6vw, 4rem)", fontFamily: "var(--display)", fontWeight: 900, letterSpacing: -2, lineHeight: 1, marginBottom: 8, color: "var(--fg)" }}>
-        <GlitchText text="SJELS" active={glitch} /><br />
+        <GlitchText text={t("intro.titleLine1")} active={glitch} /><br />
         <span style={{ color: "var(--accent)" }}>
-          <GlitchText text="SCANNER" active={glitch} />
+          <GlitchText text={t("intro.titleLine2")} active={glitch} />
         </span>
       </h1>
       <div style={{ width: 60, height: 1, background: "var(--accent)", margin: "24px auto", boxShadow: "0 0 10px var(--accent)" }} />
       <p className="layout-narrow type-body-sm" style={{ maxWidth: 480, width: "100%", color: "var(--dim)", fontSize: 13, lineHeight: 1.8, marginBottom: 8, fontFamily: "var(--mono)" }}>
-        {BRAND.tagline}<br />
-        Utviklet av {BRAND.company}. · {BRAND.product}
+        {brand.tagline}<br />
+        {t("brand.developedBy", { company: brand.company, product: brand.product })}
       </p>
       <p className="layout-narrow type-mono-sm" style={{ maxWidth: 480, width: "100%", color: "var(--dim-2)", fontSize: 11, lineHeight: 1.8, marginBottom: 16, fontFamily: "var(--mono)" }}>
-        Velg det alternativet som ligner mest på deg. Systemet er designet for å identifisere selvbedrag.
+        {t("intro.hint")}
       </p>
 
       <div className="layout-narrow" style={{ maxWidth: 480, width: "100%", marginBottom: 20 }}>
@@ -241,16 +246,16 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
 
       <div className="layout-narrow" style={{ maxWidth: 420, width: "100%", marginBottom: 32, textAlign: "left" }}>
         <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--accent)", fontFamily: "var(--mono)", marginBottom: 12 }}>
-          FØR VI STARTER
+          {t("intro.beforeStart")}
         </div>
         <label style={{ display: "block", fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)", letterSpacing: 1, marginBottom: 6 }}>
-          NAVN
+          {t("intro.name")}
         </label>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           onBlur={() => setTouched(true)}
-          placeholder="Fornavn og etternavn"
+          placeholder={t("intro.namePlaceholder")}
           className="type-intro-field"
           style={{ ...introFieldStyle, marginBottom: touched && validation.errors.name ? 4 : 12 }}
         />
@@ -260,7 +265,7 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 12 }}>
           <div>
             <label style={{ display: "block", fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)", letterSpacing: 1, marginBottom: 6 }}>
-              ALDER
+              {t("intro.age")}
             </label>
             <input
               type="number"
@@ -279,14 +284,14 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
           </div>
           <div>
             <label style={{ display: "block", fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)", letterSpacing: 1, marginBottom: 6 }}>
-              E-POST
+              {t("intro.email")}
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onBlur={() => setTouched(true)}
-              placeholder="din@epost.no"
+              placeholder={t("intro.emailPlaceholder")}
               className="type-intro-field"
               style={{ ...introFieldStyle, marginBottom: touched && validation.errors.email ? 4 : 0 }}
             />
@@ -318,27 +323,22 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
         </label>
         {touched && !consent && (
           <p style={{ fontSize: 10, color: "#f87171", fontFamily: "var(--mono)", marginTop: 8 }}>
-            Du må samtykke til lagring for å starte.
+            {t("consent.required")}
           </p>
         )}
       </div>
 
       <details style={{ maxWidth: 480, width: "100%", marginBottom: 32, textAlign: "left" }}>
         <summary style={{ fontSize: 10, letterSpacing: 2, color: "var(--dim)", fontFamily: "var(--mono)", cursor: "pointer" }}>
-          HVOR KOMMER SPØRSMÅLENE FRA?
+          {t("intro.questionsFromTitle")}
         </summary>
         <p style={{ marginTop: 12, fontSize: 11, color: "var(--dim-2)", fontFamily: "var(--mono)", lineHeight: 1.7 }}>
-          Spørsmålene lages underveis av Sjelsscanner — ikke hentet fra en fast testbok eller quiz. For hver person
-          velger systemet neste spørsmål ut fra det du allerede har svart, med utgangspunkt i etablerte psykologiske
-          rammeverk og{" "}
-          <strong style={{ color: "var(--fg-soft)", fontWeight: 600 }}>15 tematiske områder</strong> (bl.a. barndom,
-          tilknytning, grenser og skyggesiden). Du får ett spørsmål om gangen med fire alternativer; antall spørsmål
-          tilpasses individuelt, vanligvis mellom {MIN_QUESTIONS_SUGGEST} og {MAX_QUESTIONS}.
+          {t("intro.questionsFromBody", { minQ: MIN_QUESTIONS_SUGGEST, maxQ: MAX_QUESTIONS })}
         </p>
       </details>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, maxWidth: 480, width: "100%", marginBottom: 48 }}>
-        {["Big Five", "Tilknytningsteori", "Forsvarsmekanismer", "Jungian arketyper", "Freudiansk analyse", "ACE-forskning"].map(f => (
+        {(frameworkList || []).map(f => (
           <div key={f} style={{ padding: "8px 4px", border: "1px solid var(--border)", fontSize: 10, color: "var(--dim)", letterSpacing: 1, textAlign: "center", fontFamily: "var(--mono)" }}>
             {f.toUpperCase()}
           </div>
@@ -348,14 +348,18 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
       {savedSession && (
         <div style={{ maxWidth: 480, width: "100%", marginBottom: 24, padding: 16, border: "1px solid var(--accent-dim)", background: "rgba(129,140,248,0.05)" }}>
           <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--accent)", fontFamily: "var(--mono)", marginBottom: 8 }}>
-            PÅBEGYNT ANALYSE FUNNET
+            {t("intro.savedSessionTitle")}
           </div>
           <p style={{ fontSize: 12, color: "var(--fg-soft)", fontFamily: "var(--mono)", marginBottom: 12, lineHeight: 1.6 }}>
-            Spørsmål {savedSession.questionNumber} · {savedSession.covered}/{savedSession.totalCategories} kategorier dekket
+            {t("intro.savedSessionBody", {
+              n: savedSession.questionNumber,
+              covered: savedSession.covered,
+              total: savedSession.totalCategories,
+            })}
           </p>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-            <button onClick={onResume} style={{ ...btnSmall, borderColor: "var(--accent)", color: "var(--accent)" }}>FORTSETT</button>
-            <button onClick={onDiscard} style={btnSmall}>START PÅ NYTT</button>
+            <button onClick={onResume} style={{ ...btnSmall, borderColor: "var(--accent)", color: "var(--accent)" }}>{t("intro.continue")}</button>
+            <button onClick={onDiscard} style={btnSmall}>{t("intro.startFresh")}</button>
           </div>
         </div>
       )}
@@ -372,13 +376,13 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
         onMouseEnter={e => { if (!canStart || isStarting) return; e.target.style.background = "var(--accent)"; e.target.style.color = "#000"; }}
         onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = "var(--accent)"; }}
       >
-        {isStarting ? "LAGRER OG STARTER…" : savedSession ? "NY ANALYSE" : "INITIER ANALYSE"}
+        {isStarting ? t("intro.saving") : savedSession ? t("intro.newAnalysis") : t("intro.start")}
       </button>
 
       <div className="layout-narrow" style={{ maxWidth: 480, width: "100%", marginTop: 24 }}>
         <ContactRosten style={{ marginBottom: 12 }} />
         <p style={{ fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)", letterSpacing: 1, lineHeight: 1.6 }}>
-          ⚠ Ikke diagnose eller behandling. Antall spørsmål tilpasses individuelt (opp til {MAX_QUESTIONS}).
+          {t("intro.disclaimer", { maxQ: MAX_QUESTIONS })}
         </p>
       </div>
     </div>
@@ -386,6 +390,7 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
 }
 
 function AskBox({ onAskOpinion, onRephrase, isLoading, opinion, onCloseOpinion, askError, onClearAskError, metaRemaining }) {
+  const { t } = useI18n();
   const [input, setInput] = useState("");
   const [mode, setMode] = useState(null);
 
@@ -401,7 +406,7 @@ function AskBox({ onAskOpinion, onRephrase, isLoading, opinion, onCloseOpinion, 
       <div style={{ marginTop: 20, padding: 16, border: "1px solid var(--accent-dim)", background: "rgba(129,140,248,0.05)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
           <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--accent)", fontFamily: "var(--mono)" }}>
-            ◆ PSYKOLOGENS MENING
+            {t("question.psychologistOpinion")}
           </div>
           <button onClick={onCloseOpinion} style={{ background: "transparent", border: "none", color: "var(--dim)", cursor: "pointer", fontSize: 14, fontFamily: "var(--mono)" }}>✕</button>
         </div>
@@ -416,7 +421,7 @@ function AskBox({ onAskOpinion, onRephrase, isLoading, opinion, onCloseOpinion, 
     return (
       <div style={{ marginTop: 20, padding: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
         <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--dim)", fontFamily: "var(--mono)", marginBottom: 10 }}>
-          SPØR PSYKOLOGEN
+          {t("question.askPsychologist")}
         </div>
         {askError && (
           <div style={{ marginBottom: 10, padding: 8, border: "1px solid #f87171", color: "#fecaca", fontSize: 12, fontFamily: "var(--mono)" }}>
@@ -427,18 +432,18 @@ function AskBox({ onAskOpinion, onRephrase, isLoading, opinion, onCloseOpinion, 
           autoFocus value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") handleAsk(); if (e.key === "Escape") { setMode(null); onClearAskError?.(); } }}
-          placeholder="Hva mener du om...?"
+          placeholder={t("question.askPlaceholder")}
           style={{ width: "100%", boxSizing: "border-box", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--fg)", padding: "10px 12px", fontFamily: "var(--body)", fontSize: 13, outline: "none", marginBottom: 10 }}
         />
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button onClick={() => { setMode(null); onClearAskError?.(); }} style={{ ...btnSmall, padding: "6px 14px", fontSize: 10 }}>AVBRYT</button>
+          <button onClick={() => { setMode(null); onClearAskError?.(); }} style={{ ...btnSmall, padding: "6px 14px", fontSize: 10 }}>{t("question.cancel")}</button>
           <button onClick={handleAsk} disabled={input.trim().length < 3 || isLoading}
             style={{
               background: input.trim().length >= 3 && !isLoading ? "var(--accent)" : "transparent",
               border: "1px solid var(--accent-dim)",
               color: input.trim().length >= 3 && !isLoading ? "#000" : "var(--dim)",
               padding: "6px 14px", fontSize: 10, letterSpacing: 2, cursor: "pointer", fontFamily: "var(--mono)"
-            }}>{isLoading ? "VENTER..." : "SPØR"}</button>
+            }}>{isLoading ? t("question.waiting") : t("question.ask")}</button>
         </div>
       </div>
     );
@@ -447,12 +452,12 @@ function AskBox({ onAskOpinion, onRephrase, isLoading, opinion, onCloseOpinion, 
   return (
     <div style={{ marginTop: 20 }}>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={() => { onClearAskError?.(); setMode("opinion"); }} disabled={isLoading || metaRemaining <= 0} style={btnSmall}>◆ Spør psykologen</button>
-        <button onClick={onRephrase} disabled={isLoading || metaRemaining <= 0} style={btnSmall}>↻ Omformuler spørsmålet</button>
+        <button onClick={() => { onClearAskError?.(); setMode("opinion"); }} disabled={isLoading || metaRemaining <= 0} style={btnSmall}>{t("question.askBtn")}</button>
+        <button onClick={onRephrase} disabled={isLoading || metaRemaining <= 0} style={btnSmall}>{t("question.rephraseBtn")}</button>
       </div>
       {metaRemaining <= 0 && (
         <p style={{ marginTop: 8, fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)" }}>
-          Maks {META_CALL_LIMIT} ekstra forespørsler per analyse er brukt opp.
+          {t("question.metaLimit", { limit: META_CALL_LIMIT })}
         </p>
       )}
     </div>
@@ -466,6 +471,7 @@ function QuestionScreen({
   isLoading, opinion, onCloseOpinion, askError, onClearAskError,
   error, onClearError, metaRemaining,
 }) {
+  const { t } = useI18n();
   const [questionReady, setQuestionReady] = useState(false);
   const [hoveredOption, setHoveredOption] = useState(null);
   const [skipTypewriter, setSkipTypewriter] = useState(false);
@@ -492,6 +498,9 @@ function QuestionScreen({
 
   return (
     <div className="layout-shell layout-shell--question" style={{ maxWidth: 680, margin: "0 auto", padding: "32px 24px", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", width: "100%", boxSizing: "border-box" }}>
+      <div style={{ marginBottom: 16 }}>
+        <LanguageSwitcher compact />
+      </div>
       <ProgressBar current={questionNumber} maxQuestions={maxQuestions} coveredCategoryIds={coveredCategoryIds} />
       <CrisisHelpBox compact style={{ marginBottom: 20 }} />
       <CategoryProgress coveredCategoryIds={coveredCategoryIds} analysisReady={analysisReady} readinessNote={readinessNote} />
@@ -499,17 +508,17 @@ function QuestionScreen({
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
           <div style={{ fontSize: 10, letterSpacing: 3, color: "var(--accent)", fontFamily: "var(--mono)", padding: "3px 8px", border: "1px solid var(--accent-dim)" }}>
-            {category ? category.toUpperCase() : "ANALYSE"}
+            {category ? category.toUpperCase() : t("question.categoryFallback")}
           </div>
           <div style={{ fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)", letterSpacing: 2 }}>
-            SPM {questionNumber}
+            {t("question.questionShort")} {questionNumber}
           </div>
         </div>
 
         <div className="type-question-text" style={{ fontSize: "clamp(15px, 2.5vw, 18px)", lineHeight: 1.7, color: "var(--fg-soft)", fontFamily: "var(--body)", minHeight: 60 }}>
           {isLoading && !question ? (
             <span style={{ color: "var(--dim)", fontFamily: "var(--mono)", fontSize: 13 }}>
-              PROSESSERER<span style={{ animation: "blink 1s infinite" }}>...</span>
+              {t("question.processing")}<span style={{ animation: "blink 1s infinite" }}>...</span>
             </span>
           ) : skipTypewriter ? (
             <span>{question}</span>
@@ -519,7 +528,7 @@ function QuestionScreen({
         </div>
         {question && !questionReady && !isLoading && (
           <button type="button" onClick={() => { setSkipTypewriter(true); setQuestionReady(true); }} style={{ ...btnSmall, marginTop: 8, fontSize: 10 }}>
-            VIS HELE SPØRSMÅLET
+            {t("question.showFull")}
           </button>
         )}
       </div>
@@ -568,23 +577,23 @@ function QuestionScreen({
             cursor: questionReady && !isLoading ? "pointer" : "default",
           }}
         >
-          E — Ingen passer helt · skriv eget svar
+          {t("question.customOption")}
         </button>
       </div>
 
       {customMode && (
         <div style={{ marginTop: 12, padding: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--dim)", fontFamily: "var(--mono)", marginBottom: 8 }}>EGET SVAR</div>
+          <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--dim)", fontFamily: "var(--mono)", marginBottom: 8 }}>{t("question.customTitle")}</div>
           <textarea
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
             rows={3}
-            placeholder="Beskriv kort det som passer best for deg..."
+            placeholder={t("question.customPlaceholder")}
             style={{ width: "100%", boxSizing: "border-box", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--fg)", padding: 10, fontFamily: "var(--body)", fontSize: 13, resize: "vertical" }}
           />
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
-            <button type="button" onClick={() => setCustomMode(false)} style={{ ...btnSmall, fontSize: 10 }}>AVBRYT</button>
-            <button type="button" onClick={submitCustom} disabled={customText.trim().length < 3 || isLoading} style={{ ...btnSmall, borderColor: "var(--accent)", color: "var(--accent)", fontSize: 10 }}>SEND SVAR</button>
+            <button type="button" onClick={() => setCustomMode(false)} style={{ ...btnSmall, fontSize: 10 }}>{t("question.cancel")}</button>
+            <button type="button" onClick={submitCustom} disabled={customText.trim().length < 3 || isLoading} style={{ ...btnSmall, borderColor: "var(--accent)", color: "var(--accent)", fontSize: 10 }}>{t("question.sendAnswer")}</button>
           </div>
         </div>
       )}
@@ -595,7 +604,7 @@ function QuestionScreen({
         <div style={{ marginTop: 16, padding: 12, border: "1px solid #f87171", background: "rgba(248,113,113,0.08)", color: "#fecaca", fontFamily: "var(--mono)", fontSize: 12 }}>
           {error}
           <button onClick={() => { onClearError?.(); onForceAnalysis?.(); }} style={{ marginLeft: 12, background: "transparent", border: "1px solid #f87171", color: "#fecaca", padding: "2px 8px", cursor: "pointer" }}>
-            Prøv analyse igjen
+            {t("question.retryAnalysis")}
           </button>
         </div>
       )}
@@ -604,8 +613,8 @@ function QuestionScreen({
         <div style={{ marginTop: 28, paddingTop: 20, borderTop: "1px dashed var(--border)", textAlign: "center" }}>
           <p style={{ fontSize: 11, color: analysisReady ? "var(--accent)" : "var(--dim)", fontFamily: "var(--mono)", marginBottom: 12, letterSpacing: 1 }}>
             {analysisReady
-              ? "PSYKOLOGEN VURDERER AT DET ER NOK DATA FOR ANALYSE"
-              : `DU KAN BE OM ANALYSE (MIN. ${MIN_QUESTIONS_SUGGEST} SPØRSMÅL)`}
+              ? t("question.readyForAnalysis")
+              : t("question.canRequestAnalysis", { min: MIN_QUESTIONS_SUGGEST })}
           </p>
           <button onClick={onForceAnalysis} style={{
             background: "transparent", border: "1px solid var(--accent)", color: "var(--accent)",
@@ -615,7 +624,7 @@ function QuestionScreen({
             onMouseEnter={e => { e.target.style.background = "var(--accent)"; e.target.style.color = "#000"; }}
             onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = "var(--accent)"; }}
           >
-            ▶ FÅ ANALYSEN NÅ
+            {t("question.getAnalysisNow")}
           </button>
         </div>
       )}
@@ -624,12 +633,13 @@ function QuestionScreen({
 }
 
 function AnalyzingScreen({ error, onClearError, onForceAnalysis, analyzingStatus, answerCount }) {
-  const phases = ["KOMPRIMERER SVAR", "KARTLEGGER MØNSTRE", "IDENTIFISERER SPENNINGER", "BYGGER RAMMEVERK", "GENERERER RAPPORT"];
+  const { t, analyzingPhases } = useI18n();
+  const phases = analyzingPhases || [];
   const [phase, setPhase] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setPhase((p) => Math.min(p + 1, phases.length - 1)), 2200);
-    return () => clearInterval(t);
-  }, []);
+    const id = setInterval(() => setPhase((p) => Math.min(p + 1, phases.length - 1)), 2200);
+    return () => clearInterval(id);
+  }, [phases.length]);
   const label = analyzingStatus || phases[phase];
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: 32 }}>
@@ -639,7 +649,7 @@ function AnalyzingScreen({ error, onClearError, onForceAnalysis, analyzingStatus
       </div>
       {answerCount > 0 && (
         <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--dim)", marginBottom: 24 }}>
-          Behandler {answerCount} strukturerte svar
+          {t("analyzing.processingAnswers", { count: answerCount })}
         </div>
       )}
       <div style={{ display: "flex", gap: 6 }}>
@@ -653,7 +663,7 @@ function AnalyzingScreen({ error, onClearError, onForceAnalysis, analyzingStatus
           {error}
           <div style={{ marginTop: 12 }}>
             <button onClick={() => { onClearError?.(); onForceAnalysis?.(); }} style={{ background: "transparent", border: "1px solid #f87171", color: "#fecaca", padding: "6px 14px", cursor: "pointer" }}>
-              Prøv igjen
+              {t("analyzing.retry")}
             </button>
           </div>
         </div>
@@ -663,6 +673,7 @@ function AnalyzingScreen({ error, onClearError, onForceAnalysis, analyzingStatus
 }
 
 function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant, onRestart }) {
+  const { t, brand, frameworkLabels } = useI18n();
   const [visible, setVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("helhetsrapport");
   const [showRaw, setShowRaw] = useState(false);
@@ -709,7 +720,7 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
 
   const copyReport = async () => {
     try {
-      await navigator.clipboard.writeText(raw || exportText || "No analysis content.");
+      await navigator.clipboard.writeText(raw || exportText || t("report.noCopyContent"));
     } catch (_) {
       // ignore clipboard errors
     }
@@ -719,7 +730,12 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
     if (!exportText || pdfBusy) return;
     setPdfBusy(true);
     try {
-      await downloadReportPdf(data, raw, reportPdfFilename(), participant);
+      const stamp = new Date();
+      const dd = String(stamp.getDate()).padStart(2, "0");
+      const mm = String(stamp.getMonth() + 1).padStart(2, "0");
+      const yyyy = stamp.getFullYear();
+      const pdfName = `${t("report.pdfFilenamePrefix")}-${dd}-${mm}-${yyyy}.pdf`;
+      await downloadReportPdf(data, raw, pdfName, participant, frameworkLabels);
     } catch (e) {
       console.error(e);
     } finally {
@@ -731,27 +747,27 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
     <div className="layout-shell layout-shell--report" style={{ maxWidth: 720, margin: "0 auto", padding: "60px 24px", opacity: visible ? 1 : 0, transition: "opacity 0.8s ease", width: "100%", boxSizing: "border-box" }}>
       <div style={{ textAlign: "center", marginBottom: 64 }}>
         <div style={{ fontSize: 10, letterSpacing: 4, color: "var(--accent)", fontFamily: "var(--mono)", marginBottom: 16 }}>
-          ANALYSE KOMPLETT
+          {t("report.complete")}
         </div>
         <h2 style={{ fontFamily: "var(--display)", fontSize: "clamp(1.8rem, 4vw, 3rem)", fontWeight: 900, letterSpacing: -1, color: "var(--fg)" }}>
-          PSYKOANALYTISK<br /><span style={{ color: "var(--accent)" }}>RAPPORT</span>
+          {t("report.titleLine1")}<br /><span style={{ color: "var(--accent)" }}>{t("report.titleLine2")}</span>
         </h2>
         <p style={{ marginTop: 12, fontSize: 11, color: "var(--dim)", fontFamily: "var(--mono)" }}>
-          {BRAND.name} · {BRAND.product}
+          {brand.name} · {brand.product}
         </p>
         <div style={{ width: 40, height: 1, background: "var(--accent)", margin: "24px auto" }} />
       </div>
 
       <div style={{ marginBottom: 32, padding: 14, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12, lineHeight: 1.7, color: "var(--dim)", fontFamily: "var(--mono)" }}>
-        ⚠ Dette er ikke diagnose, behandling eller klinisk vurdering av helsepersonell. Rapporten er en strukturert AI-kartlegging basert på dine svar.
+        {t("report.disclaimer")}
       </div>
 
       {data?.short_summary && (
         <div style={{ marginBottom: 32, padding: 16, border: "1px solid var(--accent-dim)", background: "rgba(129,140,248,0.06)" }}>
-          <div style={{ fontFamily: "var(--mono)", fontSize: 10, letterSpacing: 2, color: "var(--accent)", marginBottom: 10 }}>KORTVERSJON</div>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 10, letterSpacing: 2, color: "var(--accent)", marginBottom: 10 }}>{t("report.shortSummary")}</div>
           <p style={{ color: "var(--fg-soft)", lineHeight: 1.8, fontSize: 14, fontFamily: "var(--body)" }}>{data.short_summary}</p>
           <button type="button" onClick={() => navigator.clipboard.writeText(data.short_summary)} style={{ ...btnSmall, marginTop: 12, fontSize: 10 }}>
-            Kopier kortversjon
+            {t("report.copyShort")}
           </button>
         </div>
       )}
@@ -763,14 +779,14 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
             onClick={() => setActiveTab("helhetsrapport")}
             style={{ ...tabStyle, ...(activeTab === "helhetsrapport" ? activeTabStyle : {}) }}
           >
-            Helhetsrapport
+            {t("report.tabFull")}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("rammeverk")}
             style={{ ...tabStyle, ...(activeTab === "rammeverk" ? activeTabStyle : {}) }}
           >
-            Etter rammeverk
+            {t("report.tabFrameworks")}
           </button>
         </div>
       )}
@@ -780,7 +796,7 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
           {data?.overall_insight && (
             <div style={{ marginBottom: 40, padding: 16, background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: 2, color: "var(--accent)", marginBottom: 10 }}>
-                OVERORDNET INNSIKT
+                {t("report.overallInsight")}
               </div>
               <div style={{ color: "var(--fg-soft)", lineHeight: 1.8, fontSize: 14, fontFamily: "var(--body)", whiteSpace: "pre-line" }}>
                 {data.overall_insight}
@@ -790,7 +806,7 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
 
           {data?.conflicts?.length > 0 && (
             <div style={{ marginBottom: 32, padding: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: 2, color: "var(--accent)", marginBottom: 8 }}>SPENNINGER I SVARENE</div>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: 2, color: "var(--accent)", marginBottom: 8 }}>{t("report.conflicts")}</div>
               <ul style={{ margin: 0, paddingLeft: 18, color: "var(--fg-soft)", fontSize: 13, lineHeight: 1.7, fontFamily: "var(--body)" }}>
                 {data.conflicts.map((c, i) => <li key={i}>{c}</li>)}
               </ul>
@@ -799,7 +815,7 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
 
           {data?.clinical_followup && (
             <div style={{ marginBottom: 40, padding: 16, border: "1px dashed var(--border)", background: "rgba(140,118,88,0.06)" }}>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: 2, color: "var(--bronze, #8c7658)", marginBottom: 8 }}>KLINISK VIDERE UTFORSKING</div>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: 2, color: "var(--bronze, #8c7658)", marginBottom: 8 }}>{t("report.clinicalFollowup")}</div>
               <p style={{ color: "var(--fg-soft)", lineHeight: 1.8, fontSize: 14, fontFamily: "var(--body)", margin: 0 }}>{data.clinical_followup}</p>
             </div>
           )}
@@ -807,7 +823,7 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
           {data?.key_themes?.length > 0 && (
             <div style={{ marginBottom: 40 }}>
               <div style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: 2, color: "var(--accent)", marginBottom: 12 }}>
-                NØKKELTEMAER
+                {t("report.keyThemes")}
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {data.key_themes.map((theme, i) => (
@@ -837,29 +853,29 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
                   {s.observation || s.interpretation || s.uncertainty ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       {s.observation && (
-                        <div><span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)" }}>Observasjon · </span><span style={{ color: "var(--fg-soft)", fontSize: 14, lineHeight: 1.8, fontFamily: "var(--body)" }}>{s.observation}</span></div>
+                        <div><span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)" }}>{t("report.observation")}</span><span style={{ color: "var(--fg-soft)", fontSize: 14, lineHeight: 1.8, fontFamily: "var(--body)" }}>{s.observation}</span></div>
                       )}
                       {s.interpretation && (
-                        <div><span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--dim)" }}>Tolkning · </span><span style={{ color: "var(--fg-soft)", fontSize: 14, lineHeight: 1.8, fontFamily: "var(--body)" }}>{s.interpretation}</span></div>
+                        <div><span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--dim)" }}>{t("report.interpretation")}</span><span style={{ color: "var(--fg-soft)", fontSize: 14, lineHeight: 1.8, fontFamily: "var(--body)" }}>{s.interpretation}</span></div>
                       )}
                       {s.uncertainty && (
-                        <div><span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--dim-2)" }}>Usikkerhet · </span><span style={{ color: "var(--dim)", fontSize: 13, lineHeight: 1.7, fontFamily: "var(--body)" }}>{s.uncertainty}</span></div>
+                        <div><span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--dim-2)" }}>{t("report.uncertainty")}</span><span style={{ color: "var(--dim)", fontSize: 13, lineHeight: 1.7, fontFamily: "var(--body)" }}>{s.uncertainty}</span></div>
                       )}
                     </div>
                   ) : (
                     <div style={{ color: "var(--fg-soft)", lineHeight: 1.9, fontSize: 14, fontFamily: "var(--body)", whiteSpace: "pre-line" }}>
-                      {s.raw || "(ingen innhold under denne overskriften)"}
+                      {s.raw || t("report.noSectionContent")}
                     </div>
                   )}
                 </div>
               ))
             ) : (
               <div style={{ color: "var(--fg-soft)", lineHeight: 1.8, fontSize: 14, fontFamily: "var(--body)", marginBottom: 32 }}>
-                Rapporten manglet forventede ##-seksjoner. Se råtekst nedenfor.
+                {t("report.missingSections")}
               </div>
             )
           ) : (
-            <div style={{ color: "#fecaca", marginBottom: 32 }}>Ingen rapporttekst mottatt. Start på nytt eller prøv å generere analysen igjen.</div>
+            <div style={{ color: "#fecaca", marginBottom: 32 }}>{t("report.noReportText")}</div>
           )}
         </>
       )}
@@ -869,7 +885,7 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
             <div style={{ width: 3, height: 20, background: "var(--accent)", flexShrink: 0 }} />
             <h3 style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: 2, color: "var(--accent)", fontWeight: 400 }}>
-              RAMMEVERK-OPPSUMMERINGER
+              {t("report.frameworkSummaries")}
             </h3>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
@@ -882,19 +898,19 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
               return (
                 <div key={fw} style={{ padding: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
                   <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--accent)", marginBottom: 6, letterSpacing: 1 }}>
-                    {(FRAMEWORK_LABELS[fw] || fw).toUpperCase()}
+                    {(frameworkLabels[fw] || fw).toUpperCase()}
                   </div>
                   {info && typeof info === "object" ? (
                     <>
                       {info.summary && <div style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 6, color: "var(--fg-soft)" }}>{info.summary}</div>}
                       {Array.isArray(patterns) && patterns.length > 0 && (
                         <div style={{ fontSize: 12, color: "var(--dim)", marginBottom: 4 }}>
-                          Nøkkelmønstre: {patterns.join(", ")}
+                          {t("report.keyPatterns")}{patterns.join(", ")}
                         </div>
                       )}
                       {evidence && (
                         <div style={{ fontSize: 12, marginTop: 4, color: "var(--fg-soft)", lineHeight: 1.6 }}>
-                          Belegg: {evidence}
+                          {t("report.evidence")}{evidence}
                         </div>
                       )}
                       {info.quote && (
@@ -902,7 +918,7 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
                           «{info.quote}»
                           {info.question_index != null && (
                             <span style={{ display: "block", marginTop: 6, fontStyle: "normal", fontFamily: "var(--mono)", fontSize: 10, color: "var(--dim)" }}>
-                              — spm. {info.question_index}
+                              {t("report.questionRef", { n: info.question_index })}
                             </span>
                           )}
                         </blockquote>
@@ -924,7 +940,7 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
           padding: "8px 18px", fontSize: 11, letterSpacing: 1, cursor: "pointer",
           fontFamily: "var(--mono)"
         }}>
-          KOPIER RÅTEKST
+          {t("report.copyRaw")}
         </button>
         <button
           type="button"
@@ -936,14 +952,14 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
             fontFamily: "var(--mono)", opacity: pdfBusy ? 0.6 : 1,
           }}
         >
-          {pdfBusy ? "GENERERER PDF…" : "LAST NED SOM PDF"}
+          {pdfBusy ? t("report.generatingPdf") : t("report.downloadPdf")}
         </button>
         <button onClick={() => setShowRaw(!showRaw)} style={{
           background: "transparent", border: "1px solid var(--border)", color: "var(--dim)",
           padding: "8px 18px", fontSize: 11, letterSpacing: 1, cursor: "pointer",
           fontFamily: "var(--mono)"
         }}>
-          {showRaw ? "SKJUL" : "VIS"} RÅTEKST
+          {showRaw ? t("report.hideRaw") : t("report.showRaw")} {t("report.rawText")}
         </button>
       </div>
 
@@ -970,7 +986,7 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
           onMouseEnter={e => { e.target.style.borderColor = "var(--accent)"; e.target.style.color = "var(--accent)"; }}
           onMouseLeave={e => { e.target.style.borderColor = "var(--border)"; e.target.style.color = "var(--dim)"; }}
         >
-          NY ANALYSE
+          {t("report.newAnalysis")}
         </button>
       </div>
     </div>
@@ -978,6 +994,7 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
 }
 
 export default function App() {
+  const { t, locale, systemPrompt } = useI18n();
   let initial = loadState();
 
   if (initial?.phase === "analyzing" && !initial?.analysis && !initial?.analysisData) {
@@ -985,7 +1002,7 @@ export default function App() {
       ...initial,
       phase: "questions",
       analysisData: null,
-      error: "Analysen ble avbrutt. Prøv «Få analysen nå» eller svar på flere spørsmål.",
+      error: null,
     };
   }
 
@@ -1058,6 +1075,12 @@ export default function App() {
     participant,
   ]);
 
+  useEffect(() => {
+    if (phase === "questions" && initial?.phase === "analyzing" && !analysis && !analysisData && !error) {
+      setError(t("errors.analysisInterrupted"));
+    }
+  }, []);
+
   const callClaude = useCallback(async (messages, options = {}) => {
     const {
       structuredAnswers = [],
@@ -1076,7 +1099,7 @@ export default function App() {
       try {
         const prepared = skipPrepare
           ? apiMessages
-          : prepareMessagesForApi(apiMessages, structuredAnswers, participantCtx);
+          : prepareMessagesForApi(apiMessages, structuredAnswers, participantCtx, locale);
 
         const response = await fetch("/api/gemini", {
           method: "POST",
@@ -1084,7 +1107,7 @@ export default function App() {
           body: JSON.stringify({
             model: "gemini-3.5-flash",
             max_tokens: maxTokens,
-            system: SYSTEM_PROMPT,
+            system: systemPrompt,
             messages: prepared,
           }),
           signal: controller.signal,
@@ -1111,8 +1134,7 @@ export default function App() {
               ...apiMessages,
               {
                 role: "user",
-                content:
-                  "[SYSTEM: Forrige svar var ugyldig eller avkuttet JSON. Returner KUN ett gyldig JSON-objekt på én linje, uten markdown. Bruk \\n for linjeskift i strenger. For neste steg: type question med question, category, questionNumber, options (4 stk).]",
+                content: apiT(locale, "api.invalidJsonRetry"),
               },
             ],
             false
@@ -1123,7 +1145,7 @@ export default function App() {
           err?.name === "AbortError" ||
           /timed out|timeout/i.test(String(err?.message || ""));
         if (isTimeout) {
-          throw new Error("Forespørselen tok for lang tid. Prøv igjen.");
+          throw new Error(t("errors.requestTimeout"));
         }
         throw err;
       } finally {
@@ -1132,16 +1154,16 @@ export default function App() {
     };
 
     return requestOnce(messages, true);
-  }, []);
+  }, [locale, systemPrompt, t]);
 
   const finishAnalysis = useCallback(
     (analysisResult, historyToUse, rawResult) => {
       setConversationHistory([
         ...historyToUse,
-        { role: "user", content: "[Generer full analyse]" },
+        { role: "user", content: apiT(locale, "api.generateAnalysis") },
         { role: "assistant", content: JSON.stringify(rawResult) },
       ]);
-      setAnalyzingStatus("Rapport klar");
+      setAnalyzingStatus(t("analyzing.reportReady"));
       if (participant?.id) {
         markParticipantAnalysisComplete(participant.id, structuredAnswers.length);
       }
@@ -1152,7 +1174,7 @@ export default function App() {
         setAnalyzingStatus("");
       }, 1200);
     },
-    [participant?.id, structuredAnswers.length]
+    [participant?.id, structuredAnswers.length, locale, t]
   );
 
   const applyMetaFromResult = useCallback(
@@ -1174,29 +1196,28 @@ export default function App() {
       setIsLoading(true);
       setOpinion("");
       setPhase("analyzing");
-      setAnalyzingStatus("Steg 1/2: Komprimerer svar…");
+      setAnalyzingStatus(t("analyzing.step1"));
       try {
-        const step1 = await callClaude(buildStep1Messages(structuredAnswers, participant), {
+        const step1 = await callClaude(buildStep1Messages(structuredAnswers, participant, locale), {
           structuredAnswers,
           maxTokens: 4096,
           skipPrepare: true,
           participant,
         });
-        setAnalyzingStatus("Steg 2/2: Genererer rapport…");
+        setAnalyzingStatus(t("analyzing.step2"));
         let result = await callClaude(
-          buildStep2Messages(structuredAnswers, step1, historyToUse, participant),
+          buildStep2Messages(structuredAnswers, step1, historyToUse, participant, locale),
           { structuredAnswers, maxTokens: 8192, skipPrepare: true, participant }
         );
         let analysisResult = normalizeAnalysis(result);
         if (!analysisResult.analysis) {
           const retry = await callClaude(
             [
-              ...buildStep2Messages(structuredAnswers, step1, historyToUse, participant),
+              ...buildStep2Messages(structuredAnswers, step1, historyToUse, participant, locale),
               { role: "assistant", content: JSON.stringify(result) },
               {
                 role: "user",
-                content:
-                  "[KRITISK: Returner full analysis JSON nå. Obligatorisk: frameworks med quote og question_index, short_summary, conflicts, clinical_followup, analysis med ## og Observasjon/Tolkning/Usikkerhet.]",
+                content: apiT(locale, "api.analysisRetry"),
               },
             ],
             { structuredAnswers, maxTokens: 8192, skipPrepare: true, participant }
@@ -1208,22 +1229,20 @@ export default function App() {
           finishAnalysis(analysisResult, historyToUse, result);
         } else {
           setPhase("questions");
-          setError(
-            "Analysen ble ikke generert. Prøv igjen eller svar på noen flere spørsmål."
-          );
+          setError(t("errors.analysisNotGenerated"));
         }
       } catch (e) {
         console.error(e);
         setPhase("questions");
         const msg = e?.message?.includes("timed out")
-          ? "Analysen tok for lang tid. Sjekk nettverket og prøv igjen."
-          : e?.message || "Analyse feilet.";
+          ? t("errors.analysisTimeout")
+          : e?.message || t("errors.analysisFailed");
         setError(msg);
       } finally {
         setIsLoading(false);
       }
     },
-    [callClaude, structuredAnswers, finishAnalysis, participant]
+    [callClaude, structuredAnswers, finishAnalysis, participant, locale, t]
   );
 
   const resetSessionState = () => {
@@ -1244,13 +1263,13 @@ export default function App() {
   };
 
   const startAnalysis = useCallback(async (participantInfo, consent = false) => {
-    const check = validateParticipant(participantInfo);
+    const check = validateParticipant(participantInfo, locale);
     if (!check.valid) {
-      setError("Fyll inn navn, alder og gyldig e-post før du starter.");
+      setError(t("errors.fillParticipant"));
       return;
     }
     if (!consent) {
-      setError("Du må samtykke til lagring av opplysningene før du starter.");
+      setError(t("errors.consentRequired"));
       return;
     }
     clearState();
@@ -1262,11 +1281,11 @@ export default function App() {
       const saved = await saveParticipantToServer(check.normalized, { consent: true });
       setParticipant({ ...saved.participant, id: saved.id });
       setPhase("questions");
-      const ctx = buildParticipantContext(saved.participant);
+      const ctx = buildParticipantContext(saved.participant, locale);
       const initMessages = [
         {
           role: "user",
-          content: `${ctx}\n\nStart analysen. Still spørsmål 1 med 4 alternativer. Maks ${MAX_QUESTIONS} spørsmål totalt — antall før analyse vurderes individuelt. Tilpass språk til deltakerens alder.`,
+          content: `${ctx}\n\n${apiT(locale, "api.startSession", { max: MAX_QUESTIONS })}`,
         },
       ];
       const result = await callClaude(initMessages, {
@@ -1284,7 +1303,7 @@ export default function App() {
           { role: "assistant", content: JSON.stringify(result) },
         ]);
       } else {
-        setError("Kunne ikke starte analysen (ugyldig svar fra modellen). Prøv igjen.");
+        setError(t("errors.startFailed"));
       }
     } catch (e) {
       console.error(e);
@@ -1292,11 +1311,11 @@ export default function App() {
       setError(
         e?.message?.includes("Lagring")
           ? e.message
-          : e?.message || "Kunne ikke starte analysen. Sjekk API-nøkkel og nettverk."
+          : e?.message || t("errors.startNetwork")
       );
     }
     setIsLoading(false);
-  }, [callClaude, applyMetaFromResult]);
+  }, [callClaude, applyMetaFromResult, locale, t]);
 
   const submitAnswer = useCallback(
     async (answerText, isCustom = false) => {
@@ -1315,12 +1334,12 @@ export default function App() {
       setStructuredAnswers(nextStructured);
 
       let messageContent =
-        buildAnswerUserMessage(questionNumber, currentCategory, answerText) +
+        buildAnswerUserMessage(questionNumber, currentCategory, answerText, locale) +
         "\n\n" +
-        buildQuestionContextMessage(questionNumber);
+        buildQuestionContextMessage(questionNumber, locale);
 
       if (mustForceAnalysis(questionNumber)) {
-        messageContent += `\n\n[SYSTEM: Dette er svar på spm ${questionNumber}/${MAX_QUESTIONS}. Generer analysis NÅ — ikke flere spørsmål.]`;
+        messageContent += `\n\n${apiT(locale, "api.forceAnalysis", { n: questionNumber, max: MAX_QUESTIONS })}`;
       }
 
       const newHistory = [...conversationHistory, { role: "user", content: messageContent }];
@@ -1362,19 +1381,19 @@ export default function App() {
           setQuestionNumber(nextNum);
         } else {
           setConversationHistory(updatedHistory);
-          setError("Uventet svar fra psykologen. Du kan fortsette eller be om analyse.");
+          setError(t("errors.unexpectedResponse"));
         }
       } catch (e) {
         console.error(e);
         const detail = e?.message || "";
         setError(
           /timed out|timeout/i.test(detail)
-            ? "Forespørselen tok for lang tid. Prøv igjen."
+            ? t("errors.requestTimeout")
             : detail.includes("JSON") || detail.includes("lese svar")
-              ? detail.startsWith("Kunne ikke")
+              ? detail.startsWith("Kunne ikke") || detail.startsWith("Could not")
                 ? detail
-                : `Kunne ikke lese svar (${detail}).`
-              : detail || "Kunne ikke hente svar fra psykologen."
+                : t("errors.couldNotRead", { detail })
+              : detail || t("errors.fetchFailed")
         );
       } finally {
         setIsLoading(false);
@@ -1391,6 +1410,8 @@ export default function App() {
       applyMetaFromResult,
       finishAnalysis,
       participant,
+      locale,
+      t,
     ]
   );
 
@@ -1403,14 +1424,14 @@ export default function App() {
   const handleAskOpinion = useCallback(
     async (userQuestion) => {
       if (metaUsageCount >= META_CALL_LIMIT) {
-        setAskError(`Maks ${META_CALL_LIMIT} ekstra forespørsler per analyse.`);
+        setAskError(t("errors.metaLimit", { limit: META_CALL_LIMIT }));
         return;
       }
       clearError();
       setAskError("");
       setIsLoading(true);
       setMetaUsageCount((c) => c + 1);
-      const askMessage = `[META-SPØRSMÅL – ikke svar på aktivt spørsmål. JSON opinion-format]: ${userQuestion}`;
+      const askMessage = apiT(locale, "api.metaOpinion", { q: userQuestion });
       const tempHistory = [...conversationHistory, { role: "user", content: askMessage }];
       try {
         const result = await callClaude(tempHistory, { structuredAnswers, participant });
@@ -1418,15 +1439,15 @@ export default function App() {
         if (text && result?.type !== "question") {
           setOpinion(String(text));
         } else {
-          setAskError("Kunne ikke hente psykologens svar. Prøv igjen.");
+          setAskError(t("errors.opinionFailed"));
         }
       } catch (e) {
         console.error(e);
-        setAskError(e?.message || "Kunne ikke generere svar. Prøv igjen.");
+        setAskError(e?.message || t("errors.generateFailed"));
       }
       setIsLoading(false);
     },
-    [conversationHistory, callClaude, metaUsageCount, structuredAnswers, participant]
+    [conversationHistory, callClaude, metaUsageCount, structuredAnswers, participant, locale, t]
   );
 
   const handleRephrase = useCallback(async () => {
@@ -1435,7 +1456,7 @@ export default function App() {
     setIsLoading(true);
     setOpinion("");
     setMetaUsageCount((c) => c + 1);
-    const askMessage = `[Omformuler spm ${questionNumber} enklere. rephrase-format, samme kategori, 4 nye alternativer.]`;
+    const askMessage = apiT(locale, "api.metaRephrase", { n: questionNumber });
     const tempHistory = [...conversationHistory, { role: "user", content: askMessage }];
     try {
       const result = await callClaude(tempHistory, { structuredAnswers, participant });
@@ -1456,6 +1477,7 @@ export default function App() {
     metaUsageCount,
     applyMetaFromResult,
     structuredAnswers,
+    locale,
   ]);
 
   const resumeSession = () => {
@@ -1506,7 +1528,7 @@ export default function App() {
       <ScanlineOverlay />
       <BrandWatermark />
       <BrandHeader />
-      <BrandFooter company={BRAND.company} />
+      <BrandFooter />
       {phase === "intro" && (
         <IntroScreen
           onStart={startAnalysis}

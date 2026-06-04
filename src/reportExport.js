@@ -605,8 +605,10 @@ export async function downloadReportPdf(
   data,
   raw,
   filename = reportPdfFilename(),
-  participant = null
+  participant = null,
+  frameworkLabelsOverride = null
 ) {
+  const labels = frameworkLabelsOverride || FRAMEWORK_LABELS;
   const logoDataUrl = await loadLogoDataUrl().catch(() => null);
   const dateLabel = new Date().toLocaleDateString("nb-NO", {
     weekday: "long",
@@ -656,7 +658,7 @@ export async function downloadReportPdf(
     L.writeMajorPart("Rammeverk — kliniske perspektiver");
 
     for (const fw of fwKeys) {
-      L.writeFrameworkCard(FRAMEWORK_LABELS[fw] || fw, fws[fw]);
+      L.writeFrameworkCard(labels[fw] || fw, fws[fw]);
     }
   }
 

@@ -1,4 +1,4 @@
-import { BRAND } from "./analysisConfig.js";
+import { useI18n } from "./i18n/I18nContext.jsx";
 
 const LOGO_SRC = "/rosten-logo.svg";
 const COPYRIGHT_SYMBOL_SRC = "/copyright-symbol.svg";
@@ -73,19 +73,20 @@ export function BrandHeader() {
   );
 }
 
-export function BrandFooter({ company = BRAND.company }) {
+export function BrandFooter() {
+  const { t, brand } = useI18n();
   const year = new Date().getFullYear();
   return (
     <footer style={footerWrapStyle}>
       <nav style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 4 }}>
         <a href="/personvern" style={footerLinkStyle}>
-          Personvern
+          {t("footer.privacy")}
         </a>
-        <a href={`mailto:${BRAND.contactEmail}`} style={footerLinkStyle}>
-          Kontakt
+        <a href={`mailto:${brand.contactEmail}`} style={footerLinkStyle}>
+          {t("footer.contact")}
         </a>
         <a href="tel:116123" style={footerLinkStyle}>
-          Krise 116 123
+          {t("footer.crisis")}
         </a>
       </nav>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -98,7 +99,7 @@ export function BrandFooter({ company = BRAND.company }) {
           aria-hidden
         />
         <span className="brand-footer-text">
-          {year} {company}. Alle rettigheter reservert.
+          {year} {brand.company}. {t("brand.rightsReserved")}
         </span>
       </div>
     </footer>
@@ -106,10 +107,11 @@ export function BrandFooter({ company = BRAND.company }) {
 }
 
 export function IntroBrandMark() {
+  const { brand } = useI18n();
   return (
     <img
       src={LOGO_SRC}
-      alt="Røsten"
+      alt={brand.name}
       style={{
         width: 56,
         height: 56,

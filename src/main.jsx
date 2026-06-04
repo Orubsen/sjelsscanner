@@ -4,6 +4,7 @@ import './theme.css'
 import App from './App.jsx'
 import AdminScreen from './AdminScreen.jsx'
 import PersonvernPage from './PersonvernPage.jsx'
+import { I18nProvider } from './i18n/I18nContext.jsx'
 
 const path = window.location.pathname.replace(/\/$/, '') || '/'
 
@@ -15,6 +16,8 @@ function Root() {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <Root />
+    <I18nProvider>
+      <Root />
+    </I18nProvider>
   </React.StrictMode>,
 )

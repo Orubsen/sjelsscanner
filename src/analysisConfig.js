@@ -59,17 +59,7 @@ export const FRAMEWORK_ORDER = [
 
 export const CATEGORY_NAMES = CATEGORIES.map((c) => c.name);
 
-export function matchCategoryId(name) {
-  if (!name) return null;
-  const n = String(name).trim().toLowerCase();
-  const hit = CATEGORIES.find(
-    (c) =>
-      c.name.toLowerCase() === n ||
-      c.name.toLowerCase().includes(n) ||
-      n.includes(c.name.toLowerCase().slice(0, 12))
-  );
-  return hit?.id ?? null;
-}
+export { matchCategoryId } from "./i18n/categories.js";
 
 export function mergeCoveredCategories(existing, incoming) {
   const set = new Set(Array.isArray(existing) ? existing : []);
