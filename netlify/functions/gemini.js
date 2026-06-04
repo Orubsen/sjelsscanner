@@ -1,6 +1,27 @@
-import { QUESTION_RESPONSE_SCHEMA } from "./geminiSchemas.js";
-
 const DEFAULT_MODEL = "gemini-3.5-flash";
+
+/** JSON Schema for mapping-phase responses — inlined (not a separate functions file). */
+const QUESTION_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    type: { type: "string", enum: ["question", "rephrase", "opinion"] },
+    question: { type: "string", description: "Max 220 chars, use « » not ASCII quotes" },
+    category: { type: "string" },
+    questionNumber: { type: "integer" },
+    options: {
+      type: "array",
+      items: { type: "string" },
+      minItems: 4,
+      maxItems: 4,
+    },
+    categories_covered: { type: "array", items: { type: "integer" } },
+    missing_categories: { type: "array", items: { type: "string" } },
+    analysis_ready: { type: "boolean" },
+    readiness_note: { type: "string" },
+    opinion: { type: "string" },
+  },
+  required: ["type", "question", "category", "questionNumber", "options", "analysis_ready"],
+};
 
 function toGeminiContents(messages) {
   const contents = [];
@@ -15,11 +36,113 @@ function toGeminiContents(messages) {
       contents.push({ role, parts: [{ text }] });
     }
   }
-  // Gemini requires the first turn to be from the user
   if (contents.length && contents[0].role !== "user") {
     contents.unshift({ role: "user", parts: [{ text: "(session continues)" }] });
   }
   return contents;
+}
+
+function closeOpenString(s) {
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inString) {
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (c === "\\") {
+        escape = true;
+        continue;
+      }
+      if (c === '"') inString = false;
+      continue;
+    }
+    if (c === '"') inString = true;
+  }
+  return inString ? `${s}"` : s;
+}
+
+function repairJson(str) {
+  let s = closeOpenString(String(str || "").trim());
+  s = s.replace(/,\s*([}\]])/g, "$1");
+  const opens = (s.match(/\{/g) || []).length;
+  const closes = (s.match(/\}/g) || []).length;
+  if (opens > closes) {
+    s = s.replace(/,\s*"[^"]*":\s*("[^"]*)?$/, "");
+    s = s.replace(/,\s*"[^"]*":\s*$/, "");
+    s = s.replace(/,\s*$/, "");
+    s += "}".repeat(opens - closes);
+  }
+  const openBrackets = (s.match(/\[/g) || []).length;
+  const closeBrackets = (s.match(/\]/g) || []).length;
+  if (openBrackets > closeBrackets) s += "]".repeat(openBrackets - closeBrackets);
+  return s;
+}
+
+function salvageQuestionJson(text) {
+  const raw = String(text || "").trim();
+  const type = raw.match(/"type"\s*:\s*"(\w+)"/)?.[1];
+  if (!type) return null;
+
+  const questionNumber = Number(raw.match(/"questionNumber"\s*:\s*(\d+)/)?.[1]) || 1;
+  const catM = raw.match(/"category"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  const category = catM ? catM[1].replace(/\\"/g, '"') : "";
+
+  const qStart = raw.indexOf('"question":"');
+  let question = "";
+  if (qStart !== -1) {
+    const from = qStart + '"question":"'.length;
+    const endMarkers = ['","category"', '", "category"', '","options"', '", "options"'];
+    let end = raw.length;
+    for (const m of endMarkers) {
+      const idx = raw.indexOf(m, from);
+      if (idx !== -1 && idx < end) end = idx;
+    }
+    question = raw.slice(from, end).replace(/\\"/g, '"').replace(/\\n/g, "\n");
+  }
+
+  const options = [];
+  const optBlock = raw.match(/"options"\s*:\s*\[([\s\S]*?)\]/);
+  if (optBlock) {
+    const re = /"((?:[^"\\]|\\.)*)"/g;
+    let m;
+    while ((m = re.exec(optBlock[1])) && options.length < 4) {
+      options.push(m[1].replace(/\\"/g, '"'));
+    }
+  }
+
+  if (type === "question" && question && options.length >= 4) {
+    return {
+      type: "question",
+      question,
+      category,
+      questionNumber,
+      options: options.slice(0, 4),
+      categories_covered: [],
+      missing_categories: [],
+      analysis_ready: /"analysis_ready"\s*:\s*true/.test(raw),
+      readiness_note: "",
+    };
+  }
+  return null;
+}
+
+/** Ensure question JSON returned to the browser is always valid. */
+function normalizeQuestionPayload(text) {
+  const trimmed = String(text || "").trim();
+  try {
+    return JSON.stringify(JSON.parse(trimmed));
+  } catch {
+    try {
+      return JSON.stringify(JSON.parse(repairJson(trimmed)));
+    } catch {
+      const salvaged = salvageQuestionJson(trimmed);
+      if (salvaged) return JSON.stringify(salvaged);
+      return null;
+    }
+  }
 }
 
 export default async (request) => {
@@ -50,7 +173,8 @@ export default async (request) => {
       maxOutputTokens: body.max_tokens ?? 4096,
       temperature: body.temperature ?? 0.7,
     };
-    if (body.json_schema === "question") {
+    const useQuestionSchema = body.json_schema === "question";
+    if (useQuestionSchema) {
       generationConfig.responseMimeType = "application/json";
       generationConfig.responseSchema = QUESTION_RESPONSE_SCHEMA;
       if (generationConfig.temperature > 0.5) {
@@ -108,7 +232,7 @@ export default async (request) => {
 
     const candidate = data?.candidates?.[0];
     const finishReason = candidate?.finishReason || "unknown";
-    const text =
+    let text =
       candidate?.content?.parts
         ?.map((p) => p.text)
         .filter(Boolean)
@@ -121,7 +245,21 @@ export default async (request) => {
       );
     }
 
-    // Anthropic-shaped envelope so App.jsx parsing stays unchanged
+    if (useQuestionSchema) {
+      const normalized = normalizeQuestionPayload(text);
+      if (!normalized) {
+        return new Response(
+          JSON.stringify({
+            error:
+              "Gemini returnerte ugyldig spørsmåls-JSON. Prøv igjen (appen ber om kompakt svar).",
+            finishReason,
+          }),
+          { status: 502, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      text = normalized;
+    }
+
     return new Response(
       JSON.stringify({
         content: [{ type: "text", text }],

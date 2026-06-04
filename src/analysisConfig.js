@@ -1,4 +1,4 @@
-export const STORAGE_KEY = "sjelsscanner_state_v2";
+export const STORAGE_KEY = "sjelsscanner_state_v3";
 
 export const MAX_QUESTIONS = 50;
 export const MIN_QUESTIONS_SUGGEST = 12;

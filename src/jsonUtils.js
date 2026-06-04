@@ -60,6 +60,92 @@ function closeOpenString(s) {
   return inString ? `${s}"` : s;
 }
 
+function unescapeJsonString(s) {
+  return String(s || "")
+    .replace(/\\n/g, "\n")
+    .replace(/\\t/g, "\t")
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, "\\");
+}
+
+function sliceBetweenMarkers(raw, startMarker, endMarkers) {
+  const start = raw.indexOf(startMarker);
+  if (start === -1) return "";
+  const from = start + startMarker.length;
+  let end = raw.length;
+  for (const marker of endMarkers) {
+    const idx = raw.indexOf(marker, from);
+    if (idx !== -1 && idx < end) end = idx;
+  }
+  return unescapeJsonString(raw.slice(from, end));
+}
+
+/** Regex salvage when model puts unescaped quotes inside question text. */
+export function salvageQuestionJson(text) {
+  const raw = String(text || "").trim();
+  const type = raw.match(/"type"\s*:\s*"(\w+)"/)?.[1];
+  if (!type) return null;
+
+  const questionNumber = Number(raw.match(/"questionNumber"\s*:\s*(\d+)/)?.[1]) || undefined;
+  const categoryMatch = raw.match(/"category"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  const category = categoryMatch ? unescapeJsonString(categoryMatch[1]) : "";
+
+  const question = sliceBetweenMarkers(raw, '"question":"', [
+    '","category"',
+    '", "category"',
+    '","options"',
+    '", "options"',
+  ]);
+
+  const options = [];
+  const optBlock = raw.match(/"options"\s*:\s*\[([\s\S]*?)\]/);
+  if (optBlock) {
+    const re = /"((?:[^"\\]|\\.)*)"/g;
+    let m;
+    while ((m = re.exec(optBlock[1])) && options.length < 4) {
+      options.push(unescapeJsonString(m[1]));
+    }
+  }
+
+  const analysis_ready = /"analysis_ready"\s*:\s*true/.test(raw);
+  const readiness_note = raw.match(/"readiness_note"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1];
+  const opinion = raw.match(/"opinion"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1];
+
+  if (type === "opinion" && opinion) {
+    return { type: "opinion", opinion: unescapeJsonString(opinion) };
+  }
+
+  if (type === "question" && question && options.length >= 4) {
+    return {
+      type: "question",
+      question,
+      category: category || "",
+      questionNumber,
+      options: options.slice(0, 4),
+      categories_covered: [],
+      missing_categories: [],
+      analysis_ready,
+      readiness_note: readiness_note ? unescapeJsonString(readiness_note) : "",
+    };
+  }
+
+  if (type === "rephrase" && question && options.length >= 4) {
+    return {
+      type: "rephrase",
+      question,
+      category: category || "",
+      questionNumber,
+      options: options.slice(0, 4),
+      categories_covered: [],
+      missing_categories: [],
+      analysis_ready: false,
+      readiness_note: readiness_note ? unescapeJsonString(readiness_note) : "",
+    };
+  }
+
+  return null;
+}
+
 /** Best-effort fix for truncated or slightly malformed JSON from LLMs. */
 export function repairJson(str) {
   let s = closeOpenString(String(str || "").trim());
@@ -104,6 +190,10 @@ export function parseLlmJson(text) {
       lastErr = e;
     }
   }
+
+  const salvaged = salvageQuestionJson(trimmed) || salvageQuestionJson(extracted || "");
+  if (salvaged) return salvaged;
+
   throw lastErr || new Error("Invalid JSON from analyst");
 }
 
@@ -147,21 +237,22 @@ export function compactMessagesForApi(
   for (let i = 0; i < middle.length; i++) {
     const m = middle[i];
     if (m.role !== "assistant") continue;
+    let p;
     try {
-      const p = JSON.parse(m.content);
-      if (p.type !== "question") continue;
-      const next = middle[i + 1];
-      const ans =
-        next?.role === "user" && !String(next.content).startsWith("[")
-          ? String(next.content).slice(0, 280)
-          : "(svar)";
-      lines.push(
-        `Spørsmål ${p.questionNumber} [${p.category || "?"}]: ${String(p.question).slice(0, 140)} → Svar: ${ans}`
-      );
-      if (next?.role === "user") i++;
+      p = parseLlmJson(m.content);
     } catch {
-      /* skip unparseable assistant turns */
+      continue;
     }
+    if (p.type !== "question") continue;
+    const next = middle[i + 1];
+    const ans =
+      next?.role === "user" && !String(next.content).startsWith("[")
+        ? String(next.content).slice(0, 280)
+        : "(svar)";
+    lines.push(
+      `Spørsmål ${p.questionNumber} [${p.category || "?"}]: ${String(p.question).slice(0, 140)} → Svar: ${ans}`
+    );
+    if (next?.role === "user") i++;
   }
 
   if (!lines.length) return messages;
