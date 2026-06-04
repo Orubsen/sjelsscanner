@@ -85,6 +85,11 @@ export function BrandFooter() {
         <a href={`mailto:${brand.contactEmail}`} style={footerLinkStyle}>
           {t("footer.contact")}
         </a>
+        {brand.websiteUrl ? (
+          <a href={brand.websiteUrl} style={footerLinkStyle} target="_blank" rel="noopener noreferrer">
+            {t("contact.website")}
+          </a>
+        ) : null}
         <a href="tel:116123" style={footerLinkStyle}>
           {t("footer.crisis")}
         </a>

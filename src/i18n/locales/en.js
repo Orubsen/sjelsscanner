@@ -41,10 +41,10 @@ export const en = {
     label: "ESTIMATED TIME · ",
     text: "approx. {min}–{max} minutes (depending on how many questions before analysis).",
   },
-  contact: { label: "CONTACT · " },
+  contact: { label: "CONTACT · ", website: "Website" },
   consent: {
     body:
-      "I consent to {product} storing my name, age and email with {company} (Netlify, EU/US depending on hosting). My answers are sent to Google Gemini to generate questions and the report — not for any purpose other than this assessment. I have read the privacy notice. Processing in line with GDPR.",
+      "I consent to {product} storing my name, age and email. My answers are sent to {product} to generate questions and the report — not for any purpose other than this assessment. I have read the privacy notice. Processing in line with GDPR.",
     privacyLink: "privacy notice",
     required: "You must consent to storage to start.",
   },

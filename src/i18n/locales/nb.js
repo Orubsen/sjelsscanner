@@ -43,10 +43,11 @@ export const nb = {
   },
   contact: {
     label: "KONTAKT · ",
+    website: "Hjemmeside",
   },
   consent: {
     body:
-      "Jeg samtykker til at {product} lagrer navn, alder og e-post hos {company} (Netlify, EU/US avhengig av hosting). Mine svar sendes til Google Gemini for å generere spørsmål og rapport — ikke til andre formål enn denne kartleggingen. Jeg har lest personvernerklæringen. Behandling i tråd med GDPR.",
+      "Jeg samtykker til at {product} lagrer navn, alder og e-post. Mine svar sendes til {product} for å generere spørsmål og rapport — ikke til andre formål enn denne kartleggingen. Jeg har lest personvernerklæringen. Behandling i tråd med GDPR.",
     privacyLink: "personvernerklæringen",
     required: "Du må samtykke til lagring for å starte.",
   },

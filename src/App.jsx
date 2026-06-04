@@ -239,11 +239,6 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
         {t("intro.hint")}
       </p>
 
-      <div className="layout-narrow" style={{ maxWidth: 480, width: "100%", marginBottom: 20 }}>
-        <EstimatedTimeNote />
-        <CrisisHelpBox compact />
-      </div>
-
       <div className="layout-narrow" style={{ maxWidth: 420, width: "100%", marginBottom: 32, textAlign: "left" }}>
         <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--accent)", fontFamily: "var(--mono)", marginBottom: 12 }}>
           {t("intro.beforeStart")}
@@ -380,6 +375,8 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
       </button>
 
       <div className="layout-narrow" style={{ maxWidth: 480, width: "100%", marginTop: 24 }}>
+        <EstimatedTimeNote />
+        <CrisisHelpBox compact />
         <ContactRosten style={{ marginBottom: 12 }} />
         <p style={{ fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)", letterSpacing: 1, lineHeight: 1.6 }}>
           {t("intro.disclaimer", { maxQ: MAX_QUESTIONS })}

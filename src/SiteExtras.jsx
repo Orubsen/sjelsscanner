@@ -59,18 +59,15 @@ export function CrisisHelpBox({ compact = false, style = {} }) {
 export function ContactRosten({ style = {} }) {
   const { t, brand } = useI18n();
   return (
-    <p style={{ ...boxStyle, marginBottom: 16, ...style }}>
-      <span style={{ color: "var(--accent)", letterSpacing: 1 }}>{t("contact.label")}</span>
-      {brand.company} —{" "}
+    <p style={{ ...boxStyle, marginBottom: 16, textAlign: "center", ...style }}>
       <a href={`mailto:${brand.contactEmail}`} style={linkStyle}>
-        {brand.contactEmail}
+        {t("footer.contact")}
       </a>
       {brand.websiteUrl ? (
         <>
-          {" "}
-          ·{" "}
+          {" · "}
           <a href={brand.websiteUrl} style={linkStyle} target="_blank" rel="noopener noreferrer">
-            {brand.websiteLabel || "rubenrøsten.no"}
+            {t("contact.website")}
           </a>
         </>
       ) : null}

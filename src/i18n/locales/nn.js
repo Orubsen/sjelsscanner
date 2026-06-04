@@ -41,10 +41,10 @@ export const nn = {
     label: "ESTIMERT TID · ",
     text: "ca. {min}–{max} minutt (avhengig av tal spørsmål før analyse).",
   },
-  contact: { label: "KONTAKT · " },
+  contact: { label: "KONTAKT · ", website: "Heimeside" },
   consent: {
     body:
-      "Eg samtykkjer til at {product} lagrar namn, alder og e-post hos {company} (Netlify, EU/US avhengig av hosting). Svara mine sendast til Google Gemini for å generere spørsmål og rapport — ikkje til andre føremål enn denne kartlegginga. Eg har lese personvernerklæringa. Behandling i tråd med GDPR.",
+      "Eg samtykkjer til at {product} lagrar namn, alder og e-post. Svara mine sendast til {product} for å generere spørsmål og rapport — ikkje til andre føremål enn denne kartlegginga. Eg har lese personvernerklæringa. Behandling i tråd med GDPR.",
     privacyLink: "personvernerklæringa",
     required: "Du må samtykkje til lagring for å starte.",
   },
