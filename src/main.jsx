@@ -1,9 +1,12 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './psychoanalysis_app.jsx'
+import App from './App.jsx'
+import AdminScreen from './AdminScreen.jsx'
+
+const isAdminRoute = /^\/admin\/?$/.test(window.location.pathname)
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    {isAdminRoute ? <AdminScreen /> : <App />}
   </React.StrictMode>,
 )
