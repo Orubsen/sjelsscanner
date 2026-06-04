@@ -299,13 +299,15 @@ export const nn = {
     contextMsg:
       "[Kontekst frå app: Dette er svar #{n}. Maks {max} spørsmål totalt. Minst {min} før analyse kan foreslåast. Vurder dekning av 15 kategoriar individuelt denne gongen.]",
     sessionMsg:
-      "[SESSION] {n} svar registrert. Neste steg: still spørsmål {next} (JSON type question). Dekka kategori-id: [{covered}].",
+      "[SESSION] {n} svar registrert. Neste steg: still spørsmål {next} — KUN JSON type question (ikkje analysis). Dekka kategori-id: [{covered}].",
     noneCovered: "ingen",
     structuredAnswers: "STRUKTURERTE SVAR:",
     participantBlock:
       "[DELTAKAR]\nNamn: {name}\nAlder: {age}\nE-post: {email}\n\n[ALDERSJUSTERING]\n{guidance}\nTilpass spørsmålstekst og dei fire svaralternativa til alder og livssituasjon. Behold same 15 kategoriar og psykoanalytisk djupn.",
     invalidJsonRetry:
       "[SYSTEM: Førre svar var ugyldig eller avkorta JSON. Returner KUN eitt gyldig JSON-objekt på éi linje, utan markdown. Bruk \\n for linjeskift i strengar. For neste steg: type question med question, category, questionNumber, options (4 stk).]",
+    truncatedRetry:
+      "[SYSTEM: Førre svar vart for langt og avkorta. Returner KUN eitt kompakt JSON-objekt type question på éi linje — IKKJE analysis. Maks ~700 teikn totalt. Korte alternativ og readiness_note.",
     forceAnalysis:
       "[SYSTEM: Dette er svar på spm {n}/{max}. Generer analysis NO — ikkje fleire spørsmål.]",
     generateAnalysis: "[Generer full analyse]",

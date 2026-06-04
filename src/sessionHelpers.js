@@ -122,12 +122,10 @@ export function buildLeanQuestionMessages(structuredAnswers, messages, participa
 
 export function prepareMessagesForApi(messages, structuredAnswers, participant, locale = "nb") {
   let prepared;
-  if (structuredAnswers?.length >= 4) {
+  if (structuredAnswers?.length >= 1) {
     prepared = buildLeanQuestionMessages(structuredAnswers, messages, participant, locale);
   } else {
-    const keepRecentPairs = structuredAnswers?.length >= 10 ? 2 : 3;
-    prepared = compactMessagesForApi(messages, { keepRecentPairs, minLength: 6 });
-    prepared = prependParticipantMessages(prepared, participant, locale);
+    prepared = prependParticipantMessages(messages, participant, locale);
   }
   return prepared;
 }

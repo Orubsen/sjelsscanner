@@ -1114,10 +1114,11 @@ export default function App() {
       structuredAnswers = [],
       maxTokens = 2048,
       skipPrepare = false,
+      jsonMode = false,
       participant: participantCtx = null,
     } = options;
 
-    const requestOnce = async (apiMessages, allowRetry) => {
+    const requestOnce = async (apiMessages, allowRetry, retryKind = "json") => {
       const controller = new AbortController();
       const timeoutId = setTimeout(
         () => controller.abort(new Error("Analysis request timed out after 90s")),
@@ -1135,6 +1136,7 @@ export default function App() {
           body: JSON.stringify({
             model: "gemini-3.5-flash",
             max_tokens: maxTokens,
+            json_mode: jsonMode,
             system: systemPrompt,
             messages: prepared,
           }),
@@ -1153,19 +1155,28 @@ export default function App() {
         const text = data.content?.find((b) => b.type === "text")?.text || "";
         if (!text.trim()) throw new Error("Empty response from analyst");
 
+        const tryParse = () => parseLlmJson(text);
+
         try {
-          return parseLlmJson(text);
+          return tryParse();
         } catch (parseErr) {
           if (!allowRetry) throw parseErr;
+          const retryKey =
+            data?.truncated || data?.finishReason === "MAX_TOKENS"
+              ? "api.truncatedRetry"
+              : retryKind === "truncated"
+                ? "api.invalidJsonRetry"
+                : "api.invalidJsonRetry";
           return requestOnce(
             [
               ...apiMessages,
               {
                 role: "user",
-                content: apiT(locale, "api.invalidJsonRetry"),
+                content: apiT(locale, retryKey),
               },
             ],
-            false
+            false,
+            data?.truncated ? "truncated" : "json"
           );
         }
       } catch (err) {
@@ -1319,6 +1330,8 @@ export default function App() {
       const result = await callClaude(initMessages, {
         participant: saved.participant,
         skipPrepare: true,
+        jsonMode: true,
+        maxTokens: 1536,
       });
       if (result.type === "question" && result.question) {
         setCurrentQuestion(result.question);
@@ -1375,6 +1388,8 @@ export default function App() {
         const result = await callClaude(newHistory, {
           structuredAnswers: nextStructured,
           participant,
+          jsonMode: true,
+          maxTokens: 1536,
         });
         const analysisResult = normalizeAnalysis(result);
         const updatedHistory = [

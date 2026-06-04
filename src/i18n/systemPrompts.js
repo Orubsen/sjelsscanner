@@ -113,6 +113,12 @@ QUESTION COUNT (important):
 - Cover all 15 categories with at least one meaningful answer before setting analysis_ready:true
 - If categories are missing: ask follow-up questions in missing themes before finishing
 
+MAPPING PHASE (default until the app explicitly asks for analysis):
+- Return ONLY type: question | rephrase | opinion — NEVER type analysis or internal_summary
+- Do not start frameworks, ## headings, or long analysis text during mapping
+- Keep each question JSON compact (roughly under 700 characters): question max 220 chars, each option max 90 chars, readiness_note max 60 chars
+- List at most 5 missing_categories names; categories_covered is only an array of ids
+
 YOU ALWAYS RESPOND WITH VALID JSON ONLY — no text outside JSON.
 For type "question" and "rephrase": minify on one line, escape \\n and quotes in strings.
 

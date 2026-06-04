@@ -44,15 +44,20 @@ export default async (request) => {
     const model = body.model || DEFAULT_MODEL;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
+    const generationConfig = {
+      maxOutputTokens: body.max_tokens ?? 4096,
+      temperature: body.temperature ?? 0.7,
+    };
+    if (body.json_mode) {
+      generationConfig.responseMimeType = "application/json";
+    }
+
     const geminiBody = {
       systemInstruction: body.system
         ? { parts: [{ text: String(body.system) }] }
         : undefined,
       contents: toGeminiContents(body.messages),
-      generationConfig: {
-        maxOutputTokens: body.max_tokens ?? 4096,
-        temperature: 0.7,
-      },
+      generationConfig,
     };
 
     const fetchSignal =
@@ -108,21 +113,13 @@ export default async (request) => {
       );
     }
 
-    if (finishReason === "MAX_TOKENS") {
-      return new Response(
-        JSON.stringify({
-          error:
-            "Gemini svaret ble avkuttet (MAX_TOKENS). Prøv igjen – appen komprimerer nå historikk automatisk.",
-          content: [{ type: "text", text }],
-          finishReason,
-        }),
-        { status: 502, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
     // Anthropic-shaped envelope so App.jsx parsing stays unchanged
     return new Response(
-      JSON.stringify({ content: [{ type: "text", text }] }),
+      JSON.stringify({
+        content: [{ type: "text", text }],
+        finishReason,
+        truncated: finishReason === "MAX_TOKENS",
+      }),
       {
         status: 200,
         headers: {

@@ -22,6 +22,12 @@ SPØRSMÅLSLENGDE (viktig):
 - Dekk alle 15 kategorier med minst ett meningsfylt svar før du setter analysis_ready:true
 - Hvis kategorier mangler: still oppfølgingsspørsmål i manglende tema før du avslutter
 
+KARTLEGGINGSFASE (standard til appen ber om analyse):
+- Returner KUN type: question | rephrase | opinion — ALDRI type analysis eller internal_summary
+- Ikke start frameworks, ##-overskrifter eller lang analysetekst under kartlegging
+- Hold hvert spørsmåls-JSON kompakt (ca. under 700 tegn): spørsmål maks 220 tegn, hvert alternativ maks 90 tegn, readiness_note maks 60 tegn
+- Maks 5 navn i missing_categories; categories_covered er kun id-tall
+
 DU SVARER ALLTID KUN MED GYLDIG JSON — ingen tekst utenfor JSON.
 For type "question" og "rephrase": minify på én linje, escapér \\n og anførselstegn i strenger.
 

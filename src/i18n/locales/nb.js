@@ -304,13 +304,15 @@ export const nb = {
     contextMsg:
       "[Kontekst fra app: Dette er svar #{n}. Maks {max} spørsmål totalt. Minst {min} før analyse kan foreslås. Vurder dekning av 15 kategorier individuelt denne gangen.]",
     sessionMsg:
-      "[SESSION] {n} svar registrert. Neste steg: still spørsmål {next} (JSON type question). Dekket kategori-id: [{covered}].",
+      "[SESSION] {n} svar registrert. Neste steg: still spørsmål {next} — KUN JSON type question (ikke analysis). Dekket kategori-id: [{covered}].",
     noneCovered: "ingen",
     structuredAnswers: "STRUKTURERTE SVAR:",
     participantBlock:
       "[DELTAKER]\nNavn: {name}\nAlder: {age}\nE-post: {email}\n\n[ALDERSJUSTERING]\n{guidance}\nTilpass spørsmålstekst og de fire svaralternativene til alder og livssituasjon. Behold samme 15 kategorier og psykoanalytisk dybde.",
     invalidJsonRetry:
       "[SYSTEM: Forrige svar var ugyldig eller avkuttet JSON. Returner KUN ett gyldig JSON-objekt på én linje, uten markdown. Bruk \\n for linjeskift i strenger. For neste steg: type question med question, category, questionNumber, options (4 stk).]",
+    truncatedRetry:
+      "[SYSTEM: Forrige svar ble for langt og avkuttet. Returner KUN ett kompakt JSON-objekt type question på én linje — IKKE analysis. Maks ~700 tegn totalt. Korte alternativer og readiness_note.",
     forceAnalysis:
       "[SYSTEM: Dette er svar på spm {n}/{max}. Generer analysis NÅ — ikke flere spørsmål.]",
     generateAnalysis: "[Generer full analyse]",

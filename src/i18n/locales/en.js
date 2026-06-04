@@ -299,13 +299,15 @@ export const en = {
     contextMsg:
       "[Context from app: This is answer #{n}. Max {max} questions total. At least {min} before analysis may be suggested. Assess coverage of all 15 categories individually this turn.]",
     sessionMsg:
-      "[SESSION] {n} answers recorded. Next step: ask question {next} (JSON type question). Covered category ids: [{covered}].",
+      "[SESSION] {n} answers recorded. Next step: ask question {next} — ONLY JSON type question (not analysis). Covered category ids: [{covered}].",
     noneCovered: "none",
     structuredAnswers: "STRUCTURED ANSWERS:",
     participantBlock:
       "[PARTICIPANT]\nName: {name}\nAge: {age}\nEmail: {email}\n\n[AGE ADJUSTMENT]\n{guidance}\nAdapt question text and the four answer options to age and life situation. Keep the same 15 categories and psychoanalytic depth.",
     invalidJsonRetry:
       "[SYSTEM: Previous response was invalid or truncated JSON. Return ONLY one valid JSON object on one line, no markdown. Use \\n for line breaks in strings. Next step: type question with question, category, questionNumber, options (4 items).]",
+    truncatedRetry:
+      "[SYSTEM: Previous response was too long and truncated. Return ONLY one compact JSON object type question on one line — NOT analysis. Max ~700 characters total. Short options and readiness_note.",
     forceAnalysis:
       "[SYSTEM: This is answer to Q {n}/{max}. Generate analysis NOW — no more questions.]",
     generateAnalysis: "[Generate full analysis]",

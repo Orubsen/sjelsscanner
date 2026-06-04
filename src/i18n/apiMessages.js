@@ -31,8 +31,8 @@ export function formatStructuredAnswersForApi(answers, locale = "nb") {
       t(locale, "api.answerLine", {
         index: a.index,
         category: a.category || "?",
-        question: a.question,
-        answer: a.answer,
+        question: String(a.question || "").slice(0, 220),
+        answer: String(a.answer || "").slice(0, 420),
         custom: a.isCustom ? t(locale, "api.customSuffix") : "",
       })
     )
