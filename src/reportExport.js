@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import { BRAND } from "./analysisConfig.js";
 
 const LOGO_SRC = "/rosten-logo.svg";
 
@@ -55,7 +56,7 @@ export function reportPdfFilename(date = new Date()) {
   const dd = String(date.getDate()).padStart(2, "0");
   const mm = String(date.getMonth() + 1).padStart(2, "0");
   const yyyy = date.getFullYear();
-  return `Røsten-Sjelsscanner-rapport-${dd}-${mm}-${yyyy}.pdf`;
+  return `Røsten-${BRAND.product}-rapport-${dd}-${mm}-${yyyy}.pdf`;
 }
 
 function rasterizeSvgToPng(svgText, size = 512) {
@@ -163,7 +164,7 @@ export function buildReportPlainText(data, raw) {
     day: "numeric",
   });
 
-  lines.push("RØSTEN — SJELSSCANNER · PSYKOANALYTISK RAPPORT");
+  lines.push(`RØSTEN — ${BRAND.product.toUpperCase()} · PSYKOANALYTISK RAPPORT`);
   lines.push(`Generert: ${date}`);
   lines.push("");
 
@@ -270,7 +271,7 @@ function drawCoverPage(doc, logoDataUrl, dateLabel, participant) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
   setInk(doc, true);
-  doc.text("Røsten · Sjelsscanner", cx, y, { align: "center" });
+  doc.text(`Røsten · ${BRAND.product}`, cx, y, { align: "center" });
   y += 10;
 
   const participantName = String(participant?.name || "").trim();
@@ -336,7 +337,7 @@ function drawRunningHeader(doc, logoDataUrl) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
   setInk(doc);
-  doc.text("RØSTEN · SJELSSCANNER", MARGIN, top + 5);
+  doc.text(`RØSTEN · ${BRAND.product.toUpperCase()}`, MARGIN, top + 5);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);

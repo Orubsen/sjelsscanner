@@ -2,7 +2,7 @@
 export const nn = {
   brand: {
     name: "Røsten",
-    product: "Sjelsscanner",
+    product: "Skyggelabyrinten",
     company: "RØSTEN ENT",
     tagline: "Kirurgisk psykoanalytisk kartlegging — ikkje ein personlegdomstest.",
     developedBy: "Utvikla av {company}. · {product}",
@@ -30,7 +30,7 @@ export const nn = {
   crisis: {
     title: "TRENGER DU HJELP NO?",
     intro:
-      "Sjelsscanner erstattar ikkje krisehjelp eller behandling. Ved akutt ubehag eller krise:",
+      "Skyggelabyrinten erstattar ikkje krisehjelp eller behandling. Ved akutt ubehag eller krise:",
     lines: [
       { label: "Mental Helse – Hjelpetelefonen", value: "116 123", href: "tel:116123" },
       { label: "Akutt medisinsk nødhjelp", value: "113", href: "tel:113" },
@@ -74,8 +74,8 @@ export const nn = {
   lang: { label: "Språk" },
   intro: {
     version: "PSYKOANALYTISK SYSTEM v2.4.1",
-    titleLine1: "SJELS",
-    titleLine2: "SCANNER",
+    titleLine1: "SKYGGE",
+    titleLine2: "LABYRINTEN",
     hint: "Vel det alternativet som liknar mest på deg. Systemet er designa for å identifisere sjølvbedraging.",
     beforeStart: "FØR VI STARTAR",
     name: "NAMN",
@@ -85,7 +85,7 @@ export const nn = {
     emailPlaceholder: "din@epost.no",
     questionsFromTitle: "KOR KJEM SPØRSMÅLA FRÅ?",
     questionsFromBody:
-      "Spørsmåla vert laga undervegs av Sjelsscanner — ikkje henta frå ein fast testbok eller quiz. For kvar person vel systemet neste spørsmål ut frå det du allereie har svara, med utgangspunkt i etablerte psykologiske rammeverk og 15 tematiske område (bl.a. barndom, tilknyting, grenser og skyggesida). Du får eitt spørsmål om gongen med fire alternativ; tal spørsmål tilpassast individuelt, vanlegvis mellom {minQ} og {maxQ}.",
+      "Spørsmåla vert laga undervegs av Skyggelabyrinten — ikkje henta frå ein fast testbok eller quiz. For kvar person vel systemet neste spørsmål ut frå det du allereie har svara, med utgangspunkt i etablerte psykologiske rammeverk og 15 tematiske område (bl.a. barndom, tilknyting, grenser og skyggesida). Du får eitt spørsmål om gongen med fire alternativ; tal spørsmål tilpassast individuelt, vanlegvis mellom {minQ} og {maxQ}.",
     savedSessionTitle: "PÅBYGD ANALYSE FUNNE",
     savedSessionBody: "Spørsmål {n} · {covered}/{total} kategoriar dekt",
     continue: "FORTSET",
@@ -174,7 +174,7 @@ export const nn = {
     rawText: "RÅTEKST",
     newAnalysis: "NY ANALYSE",
     noCopyContent: "Ingen rapportinnhald.",
-    pdfFilenamePrefix: "Røsten-Sjelsscanner-rapport",
+    pdfFilenamePrefix: "Røsten-Skyggelabyrinten-rapport",
   },
   errors: {
     analysisInterrupted:
@@ -243,12 +243,12 @@ export const nn = {
         body: "{product} er ikkje diagnose, behandling eller akutt hjelp. Ved krise, bruk nødnumra under.",
       },
     },
-    footerScanner: "Scanner",
+    footerScanner: "Skyggelabyrinten",
     footerPrivacy: "Personvern",
   },
   admin: {
     title: "ADMIN",
-    backScanner: "← SCANNER",
+    backScanner: "← SKYGGE",
     refresh: "OPPDATER",
     refreshing: "HENTAR…",
     exportCsv: "EKSPORTER CSV",

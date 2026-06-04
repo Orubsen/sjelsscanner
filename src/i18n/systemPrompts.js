@@ -3,7 +3,7 @@ import { getCategoryNames } from "./categories.js";
 
 const PROMPT_META = {
   nb: {
-    role: "Du er en avansert psykoanalytisk AI i Røsten Sjelsscanner.",
+    role: "Du er en avansert psykoanalytisk AI i Røsten Skyggelabyrinten.",
     language:
       "All brukervendt tekst (spørsmål, alternativer, readiness_note, analyse, frameworks) skal være på norsk bokmål.",
     readinessLang: "kort begrunnelse på norsk",
@@ -30,7 +30,7 @@ Bruk intern oppsummering + alle svar. frameworks obligatorisk med quote og quest
 Nevn motstridende svar i ## SPENNINGER OG MOTSTRIDENDE SVAR og i conflicts-feltet.`,
   },
   nn: {
-    role: "Du er ein avansert psykoanalytisk AI i Røsten Sjelsscanner.",
+    role: "Du er ein avansert psykoanalytisk AI i Røsten Skyggelabyrinten.",
     language:
       "All brukarvend tekst (spørsmål, alternativ, readiness_note, analyse, frameworks) skal vere på nynorsk.",
     readinessLang: "kort grunn på nynorsk",
@@ -57,7 +57,7 @@ Bruk intern oppsummering + alle svar. frameworks obligatorisk med quote og quest
 Nemn motstridande svar i ## SPENNINGAR OG MOTSTRIDANDE SVAR og i conflicts-feltet.`,
   },
   en: {
-    role: "You are an advanced psychoanalytic AI in Røsten Soul Scanner.",
+    role: "You are an advanced psychoanalytic AI in Røsten Skyggelabyrinten.",
     language:
       "All user-facing text (questions, options, readiness_note, analysis, frameworks) must be in English.",
     readinessLang: "brief reason in English",
