@@ -184,7 +184,7 @@ export default function AdminScreen() {
               <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--mono)", fontSize: 11 }}>
                 <thead>
                   <tr style={{ background: "var(--surface)", textAlign: "left" }}>
-                    {["Navn", "Alder", "E-post", "Registrert", "ID"].map((h) => (
+                    {["Navn", "Alder", "E-post", "Registrert", "Fullført", "ID"].map((h) => (
                       <th
                         key={h}
                         style={{
@@ -203,7 +203,7 @@ export default function AdminScreen() {
                 <tbody>
                   {rows.length === 0 && !loading && (
                     <tr>
-                      <td colSpan={5} style={{ padding: 24, color: "var(--dim)", textAlign: "center" }}>
+                      <td colSpan={6} style={{ padding: 24, color: "var(--dim)", textAlign: "center" }}>
                         Ingen deltakere lagret ennå.
                       </td>
                     </tr>
@@ -218,6 +218,9 @@ export default function AdminScreen() {
                         </a>
                       </td>
                       <td style={{ padding: "10px 12px", color: "var(--dim)" }}>{formatDate(r.createdAt)}</td>
+                      <td style={{ padding: "10px 12px", color: r.analysisCompleted ? "var(--accent)" : "var(--dim-2)" }}>
+                        {r.analysisCompleted ? "Ja" : "Nei"}
+                      </td>
                       <td style={{ padding: "10px 12px", color: "var(--dim-2)", fontSize: 9 }}>{r.id}</td>
                     </tr>
                   ))}

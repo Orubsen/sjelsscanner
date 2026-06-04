@@ -9,7 +9,18 @@ export const BRAND = {
   product: "Sjelsscanner",
   company: "RØSTEN ENT",
   tagline: "Kirurgisk psykoanalytisk kartlegging — ikke en personlighetstest.",
+  contactEmail: "kontakt@rosten.no",
+  websiteUrl: "https://rosten.no",
+  siteUrl: "https://sjelescanner.netlify.app",
 };
+
+/** Ca. tid for typisk økt (spørsmål + rapport). */
+export const ESTIMATED_MINUTES = { min: 15, max: 30 };
+
+export const CRISIS_LINES = [
+  { label: "Mental Helse – Hjelpetelefonen", value: "116 123", href: "tel:116123" },
+  { label: "Akutt medisinsk nødhjelp", value: "113", href: "tel:113" },
+];
 
 export const CATEGORIES = [
   { id: 1, name: "Tidlig barndom og primære omsorgspersoner" },

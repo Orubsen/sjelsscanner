@@ -43,6 +43,20 @@ export async function saveParticipantToServer(participant, { consent = false } =
   return { id: data.id, participant: check.normalized };
 }
 
+export async function markParticipantAnalysisComplete(participantId, questionCount) {
+  if (!participantId) return;
+  try {
+    const response = await fetch("/api/complete-participant", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: participantId, questionCount }),
+    });
+    await parseJsonResponse(response);
+  } catch (e) {
+    console.warn("Kunne ikke markere fullført analyse:", e);
+  }
+}
+
 export async function verifyAdminPassword(password) {
   const response = await fetch("/api/verify-admin", {
     method: "POST",
@@ -71,7 +85,7 @@ export async function fetchParticipantsList(adminToken) {
 }
 
 export function participantsToCsv(rows) {
-  const header = ["id", "navn", "alder", "e-post", "registrert", "samtykke"];
+  const header = ["id", "navn", "alder", "e-post", "registrert", "fullført", "fullført_dato", "samtykke"];
   const escape = (v) => {
     const s = String(v ?? "");
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -85,6 +99,8 @@ export function participantsToCsv(rows) {
         r.age,
         r.email,
         r.createdAt,
+        r.analysisCompleted ? "ja" : "nei",
+        r.analysisCompletedAt || "",
         r.consent ? "ja" : "nei",
       ]
         .map(escape)

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#080a0f"/>
+  <rect x="80" y="80" width="1040" height="470" rx="8" fill="none" stroke="#818cf8" stroke-width="2" opacity="0.4"/>
+  <text x="600" y="280" text-anchor="middle" font-family="system-ui,sans-serif" font-size="72" font-weight="700" fill="#e2e8f0" letter-spacing="4">SJELSSCANNER</text>
+  <text x="600" y="360" text-anchor="middle" font-family="system-ui,sans-serif" font-size="28" fill="#818cf8">Røsten · Psykoanalytisk kartlegging</text>
+  <text x="600" y="420" text-anchor="middle" font-family="system-ui,sans-serif" font-size="22" fill="#4a5568">sjelescanner.netlify.app</text>
+</svg>

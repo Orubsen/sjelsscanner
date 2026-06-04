@@ -32,6 +32,8 @@ function validateBody(body) {
       consentAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       source: "sjelsscanner",
+      analysisCompleted: false,
+      analysisCompletedAt: null,
     },
   };
 }
@@ -59,7 +61,12 @@ export default async (request) => {
     await store.setJSON(id, entry);
 
     const index = (await store.get("_index", { type: "json" })) ?? [];
-    index.push({ id, createdAt: entry.createdAt, email: entry.email });
+    index.push({
+      id,
+      createdAt: entry.createdAt,
+      email: entry.email,
+      analysisCompleted: false,
+    });
     await store.setJSON("_index", index);
 
     return jsonResponse({ ok: true, id });

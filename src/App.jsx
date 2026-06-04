@@ -36,7 +36,14 @@ import {
   MIN_PARTICIPANT_AGE,
   MAX_PARTICIPANT_AGE,
 } from "./participantHelpers.js";
-import { saveParticipantToServer } from "./participantApi.js";
+import { saveParticipantToServer, markParticipantAnalysisComplete } from "./participantApi.js";
+import { computeSessionProgressPercent } from "./sessionProgress.js";
+import {
+  EstimatedTimeNote,
+  CrisisHelpBox,
+  ContactRosten,
+  ConsentDetails,
+} from "./SiteExtras.jsx";
 
 const loadState = () => {
   try {
@@ -92,16 +99,30 @@ function Typewriter({ text, speed = 18, onDone }) {
   return <span>{displayed}{!done && <span className="cursor">█</span>}</span>;
 }
 
-function ProgressBar({ current, maxQuestions }) {
-  const pct = Math.min((current / maxQuestions) * 100, 100);
+function ProgressBar({ current, maxQuestions, coveredCategoryIds }) {
+  const questionPct = Math.min(100, (current / maxQuestions) * 100);
+  const overallPct = computeSessionProgressPercent(current, coveredCategoryIds);
   return (
     <div style={{ marginBottom: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 11, color: "var(--dim)", letterSpacing: 2 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 11, color: "var(--dim)", letterSpacing: 2, flexWrap: "wrap", gap: 8 }}>
         <span>DATAINNSAMLING</span>
-        <span>{current} SPØRSMÅL · MAKS {maxQuestions}</span>
+        <span>
+          FREMDRIFT {overallPct}% · SPM {current}/{maxQuestions}
+        </span>
       </div>
-      <div style={{ height: 2, background: "var(--surface)", overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${pct}%`, background: "var(--accent)", transition: "width 0.6s ease", boxShadow: "0 0 8px var(--accent)" }} />
+      <div style={{ height: 2, background: "var(--surface)", overflow: "hidden", marginBottom: 6 }}>
+        <div
+          style={{
+            height: "100%",
+            width: `${overallPct}%`,
+            background: "var(--accent)",
+            transition: "width 0.6s ease",
+            boxShadow: "0 0 8px var(--accent)",
+          }}
+        />
+      </div>
+      <div style={{ height: 1, background: "var(--surface)", overflow: "hidden", opacity: 0.6 }}>
+        <div style={{ height: "100%", width: `${questionPct}%`, background: "var(--dim-2)", transition: "width 0.6s ease" }} />
       </div>
     </div>
   );
@@ -209,9 +230,14 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
         {BRAND.tagline}<br />
         Utviklet av {BRAND.company}. · {BRAND.product}
       </p>
-      <p className="layout-narrow type-mono-sm" style={{ maxWidth: 480, width: "100%", color: "var(--dim-2)", fontSize: 11, lineHeight: 1.8, marginBottom: 24, fontFamily: "var(--mono)" }}>
+      <p className="layout-narrow type-mono-sm" style={{ maxWidth: 480, width: "100%", color: "var(--dim-2)", fontSize: 11, lineHeight: 1.8, marginBottom: 16, fontFamily: "var(--mono)" }}>
         Velg det alternativet som ligner mest på deg. Systemet er designet for å identifisere selvbedrag.
       </p>
+
+      <div className="layout-narrow" style={{ maxWidth: 480, width: "100%", marginBottom: 20 }}>
+        <EstimatedTimeNote />
+        <CrisisHelpBox compact />
+      </div>
 
       <div className="layout-narrow" style={{ maxWidth: 420, width: "100%", marginBottom: 32, textAlign: "left" }}>
         <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--accent)", fontFamily: "var(--mono)", marginBottom: 12 }}>
@@ -288,9 +314,7 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
             onChange={(e) => setConsent(e.target.checked)}
             style={{ marginTop: 3, accentColor: "var(--accent)" }}
           />
-          <span>
-            Jeg samtykker til at Sjelsscanner lagrer navn, alder og e-post for denne kartleggingen (personvern i tråd med GDPR).
-          </span>
+          <ConsentDetails />
         </label>
         {touched && !consent && (
           <p style={{ fontSize: 10, color: "#f87171", fontFamily: "var(--mono)", marginTop: 8 }}>
@@ -351,9 +375,12 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
         {isStarting ? "LAGRER OG STARTER…" : savedSession ? "NY ANALYSE" : "INITIER ANALYSE"}
       </button>
 
-      <p style={{ marginTop: 24, fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)", letterSpacing: 1, maxWidth: 420, lineHeight: 1.6 }}>
-        ⚠ Ikke diagnose eller behandling. Antall spørsmål tilpasses individuelt (opp til {MAX_QUESTIONS}).
-      </p>
+      <div className="layout-narrow" style={{ maxWidth: 480, width: "100%", marginTop: 24 }}>
+        <ContactRosten style={{ marginBottom: 12 }} />
+        <p style={{ fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)", letterSpacing: 1, lineHeight: 1.6 }}>
+          ⚠ Ikke diagnose eller behandling. Antall spørsmål tilpasses individuelt (opp til {MAX_QUESTIONS}).
+        </p>
+      </div>
     </div>
   );
 }
@@ -465,7 +492,8 @@ function QuestionScreen({
 
   return (
     <div className="layout-shell layout-shell--question" style={{ maxWidth: 680, margin: "0 auto", padding: "32px 24px", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", width: "100%", boxSizing: "border-box" }}>
-      <ProgressBar current={questionNumber} maxQuestions={maxQuestions} />
+      <ProgressBar current={questionNumber} maxQuestions={maxQuestions} coveredCategoryIds={coveredCategoryIds} />
+      <CrisisHelpBox compact style={{ marginBottom: 20 }} />
       <CategoryProgress coveredCategoryIds={coveredCategoryIds} analysisReady={analysisReady} readinessNote={readinessNote} />
 
       <div style={{ marginBottom: 28 }}>
@@ -928,7 +956,12 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
         </pre>
       )}
 
-      <div style={{ textAlign: "center", marginTop: 32 }}>
+      <div style={{ marginTop: 40, marginBottom: 24 }}>
+        <CrisisHelpBox compact />
+        <ContactRosten style={{ marginTop: 12 }} />
+      </div>
+
+      <div style={{ textAlign: "center", marginTop: 16 }}>
         <button onClick={onRestart} style={{
           background: "transparent", border: "1px solid var(--border)", color: "var(--dim)",
           padding: "12px 32px", fontSize: 11, letterSpacing: 2, cursor: "pointer",
@@ -1101,20 +1134,26 @@ export default function App() {
     return requestOnce(messages, true);
   }, []);
 
-  const finishAnalysis = useCallback((analysisResult, historyToUse, rawResult) => {
-    setConversationHistory([
-      ...historyToUse,
-      { role: "user", content: "[Generer full analyse]" },
-      { role: "assistant", content: JSON.stringify(rawResult) },
-    ]);
-    setAnalyzingStatus("Rapport klar");
-    setTimeout(() => {
-      setAnalysis(analysisResult.analysis);
-      setAnalysisData(analysisResult);
-      setPhase("result");
-      setAnalyzingStatus("");
-    }, 1200);
-  }, []);
+  const finishAnalysis = useCallback(
+    (analysisResult, historyToUse, rawResult) => {
+      setConversationHistory([
+        ...historyToUse,
+        { role: "user", content: "[Generer full analyse]" },
+        { role: "assistant", content: JSON.stringify(rawResult) },
+      ]);
+      setAnalyzingStatus("Rapport klar");
+      if (participant?.id) {
+        markParticipantAnalysisComplete(participant.id, structuredAnswers.length);
+      }
+      setTimeout(() => {
+        setAnalysis(analysisResult.analysis);
+        setAnalysisData(analysisResult);
+        setPhase("result");
+        setAnalyzingStatus("");
+      }, 1200);
+    },
+    [participant?.id, structuredAnswers.length]
+  );
 
   const applyMetaFromResult = useCallback(
     (result) => {
@@ -1455,7 +1494,7 @@ export default function App() {
           --display: 'Bebas Neue', sans-serif;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg); color: var(--fg); min-height: 100vh; padding-bottom: 44px; }
+        body { background: var(--bg); color: var(--fg); min-height: 100vh; padding-bottom: 64px; }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
         .cursor { animation: blink 1s infinite; }
         ::-webkit-scrollbar { width: 4px; }

@@ -1,7 +1,6 @@
 import { BRAND } from "./analysisConfig.js";
 
 const LOGO_SRC = "/rosten-logo.svg";
-/** White © for dark backgrounds — Wikimedia: Copyright_white.svg (PD) */
 const COPYRIGHT_SYMBOL_SRC = "/copyright-symbol.svg";
 
 const watermarkStyle = {
@@ -34,34 +33,35 @@ const headerLogoStyle = {
   filter: "drop-shadow(0 0 12px rgba(129,140,248,0.15))",
 };
 
-const footerStyle = {
+const footerWrapStyle = {
   position: "fixed",
   left: 0,
   right: 0,
   bottom: 0,
   zIndex: 900,
   display: "flex",
+  flexDirection: "column",
   alignItems: "center",
-  justifyContent: "center",
-  gap: 8,
-  padding: "10px 16px",
+  gap: 6,
+  padding: "8px 16px 10px",
   background: "linear-gradient(to top, rgba(8,10,15,0.95), rgba(8,10,15,0.75))",
   borderTop: "1px solid var(--border)",
   fontFamily: "var(--mono)",
   fontSize: 10,
   letterSpacing: 1,
   color: "var(--dim)",
-  pointerEvents: "none",
+};
+
+const footerLinkStyle = {
+  color: "var(--dim)",
+  textDecoration: "none",
+  margin: "0 8px",
+  transition: "color 0.15s",
 };
 
 export function BrandWatermark() {
   return (
-    <img
-      src={LOGO_SRC}
-      alt=""
-      aria-hidden
-      style={watermarkStyle}
-    />
+    <img src={LOGO_SRC} alt="" aria-hidden style={watermarkStyle} />
   );
 }
 
@@ -76,17 +76,31 @@ export function BrandHeader() {
 export function BrandFooter({ company = BRAND.company }) {
   const year = new Date().getFullYear();
   return (
-    <footer style={footerStyle}>
-      <img
-        src={COPYRIGHT_SYMBOL_SRC}
-        alt="Copyright"
-        width={16}
-        height={16}
-        style={{ opacity: 0.85, flexShrink: 0 }}
-      />
-      <span className="brand-footer-text">
-        {year} {company}. Alle rettigheter reservert.
-      </span>
+    <footer style={footerWrapStyle}>
+      <nav style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 4 }}>
+        <a href="/personvern" style={footerLinkStyle}>
+          Personvern
+        </a>
+        <a href={`mailto:${BRAND.contactEmail}`} style={footerLinkStyle}>
+          Kontakt
+        </a>
+        <a href="tel:116123" style={footerLinkStyle}>
+          Krise 116 123
+        </a>
+      </nav>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <img
+          src={COPYRIGHT_SYMBOL_SRC}
+          alt=""
+          width={14}
+          height={14}
+          style={{ opacity: 0.85, flexShrink: 0 }}
+          aria-hidden
+        />
+        <span className="brand-footer-text">
+          {year} {company}. Alle rettigheter reservert.
+        </span>
+      </div>
     </footer>
   );
 }
