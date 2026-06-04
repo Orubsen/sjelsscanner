@@ -9,8 +9,9 @@ export const BRAND = {
   product: "Sjelsscanner",
   company: "RØSTEN ENT",
   tagline: "Kirurgisk psykoanalytisk kartlegging — ikke en personlighetstest.",
-  contactEmail: "kontakt@rosten.no",
-  websiteUrl: "https://rosten.no",
+  contactEmail: "kontakt@xn--rubenrsten-5cb.no",
+  websiteUrl: "https://rubenrøsten.no",
+  websiteLabel: "rubenrøsten.no",
   siteUrl: "https://sjelescanner.netlify.app",
 };
 

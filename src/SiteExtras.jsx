@@ -68,7 +68,7 @@ export function ContactRosten({ style = {} }) {
           {" "}
           ·{" "}
           <a href={BRAND.websiteUrl} style={linkStyle} target="_blank" rel="noopener noreferrer">
-            rosten.no
+            {BRAND.websiteLabel || "rubenrøsten.no"}
           </a>
         </>
       ) : null}
