@@ -1,6 +1,26 @@
 import { useI18n } from "./i18n/I18nContext.jsx";
 
-const boxStyle = {
+const linkStyle = {
+  color: "var(--accent)",
+  textDecoration: "none",
+};
+
+const summaryStyle = {
+  fontSize: 10,
+  letterSpacing: 2,
+  fontFamily: "var(--mono)",
+  cursor: "pointer",
+  listStyle: "none",
+};
+
+const detailsBase = {
+  width: "100%",
+  marginBottom: 12,
+  textAlign: "left",
+};
+
+const panelStyle = {
+  marginTop: 12,
   padding: 14,
   border: "1px solid var(--border)",
   background: "var(--surface)",
@@ -10,37 +30,60 @@ const boxStyle = {
   color: "var(--dim)",
 };
 
-const linkStyle = {
-  color: "var(--accent)",
-  textDecoration: "none",
-};
+function InfoDropdown({ title, titleColor = "var(--dim)", variant = "default", style = {}, children }) {
+  const isCrisis = variant === "crisis";
+  return (
+    <details
+      style={{
+        ...detailsBase,
+        ...style,
+      }}
+    >
+      <summary
+        style={{
+          ...summaryStyle,
+          color: titleColor,
+        }}
+      >
+        {title}
+      </summary>
+      <div
+        style={{
+          ...panelStyle,
+          ...(isCrisis
+            ? {
+                borderColor: "rgba(248,113,113,0.35)",
+                background: "rgba(248,113,113,0.06)",
+              }
+            : { color: "var(--fg-soft)" }),
+        }}
+      >
+        {children}
+      </div>
+    </details>
+  );
+}
 
 export function EstimatedTimeNote({ style = {} }) {
   const { t, brand } = useI18n();
   const { min, max } = brand.estimatedMinutes || { min: 15, max: 30 };
+  const title = t("estimatedTime.label").replace(/\s*·\s*$/, "").trim();
   return (
-    <p style={{ ...boxStyle, marginBottom: 16, color: "var(--fg-soft)", ...style }}>
-      <span style={{ color: "var(--accent)", letterSpacing: 1 }}>{t("estimatedTime.label")}</span>
+    <InfoDropdown title={title} titleColor="var(--accent)" style={style}>
       {t("estimatedTime.text", { min, max })}
-    </p>
+    </InfoDropdown>
   );
 }
 
 export function CrisisHelpBox({ compact = false, style = {} }) {
   const { t, crisisLines } = useI18n();
   return (
-    <div
-      style={{
-        ...boxStyle,
-        borderColor: "rgba(248,113,113,0.35)",
-        background: "rgba(248,113,113,0.06)",
-        marginBottom: compact ? 12 : 20,
-        ...style,
-      }}
+    <InfoDropdown
+      title={t("crisis.title")}
+      titleColor="#fca5a5"
+      variant="crisis"
+      style={{ marginBottom: compact ? 8 : 12, ...style }}
     >
-      <div style={{ fontSize: 10, letterSpacing: 2, color: "#fca5a5", marginBottom: 8 }}>
-        {t("crisis.title")}
-      </div>
       <p style={{ marginBottom: 8, color: "var(--fg-soft)" }}>{t("crisis.intro")}</p>
       <ul style={{ margin: 0, paddingLeft: 18, color: "var(--fg-soft)" }}>
         {crisisLines.map((line) => (
@@ -52,14 +95,27 @@ export function CrisisHelpBox({ compact = false, style = {} }) {
           </li>
         ))}
       </ul>
-    </div>
+    </InfoDropdown>
   );
 }
 
 export function ContactRosten({ style = {} }) {
   const { t, brand } = useI18n();
   return (
-    <p style={{ ...boxStyle, marginBottom: 16, textAlign: "center", ...style }}>
+    <p
+      style={{
+        padding: 14,
+        border: "1px solid var(--border)",
+        background: "var(--surface)",
+        fontFamily: "var(--mono)",
+        fontSize: 11,
+        lineHeight: 1.65,
+        color: "var(--dim)",
+        marginBottom: 16,
+        textAlign: "center",
+        ...style,
+      }}
+    >
       <a href={`mailto:${brand.contactEmail}`} style={linkStyle}>
         {t("footer.contact")}
       </a>

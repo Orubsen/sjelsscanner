@@ -130,3 +130,16 @@
     }
   }
 }
+
+/* Sammenleggbare info-bokser (details/summary) */
+.app-root details summary {
+  list-style: none;
+}
+
+.app-root details summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-root details summary::marker {
+  content: "";
+}
