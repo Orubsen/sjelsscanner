@@ -917,12 +917,8 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
             </h3>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-            {FRAMEWORK_ORDER.filter(fw => data.frameworks[fw]).concat(
-              Object.keys(data.frameworks).filter(fw => !FRAMEWORK_ORDER.includes(fw))
-            ).map(fw => {
+            {Object.keys(data.frameworks).map((fw) => {
               const info = data.frameworks[fw];
-              const patterns = info?.key_patterns ?? info?.key_traits;
-              const evidence = info?.evidence_from_answers ?? info?.evidence;
               return (
                 <div key={fw} style={{ padding: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
                   <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--accent)", marginBottom: 6, letterSpacing: 1 }}>
@@ -931,25 +927,15 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
                   {info && typeof info === "object" ? (
                     <>
                       {info.summary && <div style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 6, color: "var(--fg-soft)" }}>{info.summary}</div>}
-                      {Array.isArray(patterns) && patterns.length > 0 && (
+                      {Array.isArray(info.key_patterns) && info.key_patterns.length > 0 && (
                         <div style={{ fontSize: 12, color: "var(--dim)", marginBottom: 4 }}>
-                          {t("report.keyPatterns")}{patterns.join(", ")}
+                          {t("report.keyPatterns")}{info.key_patterns.join(", ")}
                         </div>
                       )}
-                      {evidence && (
+                      {info.evidence_from_answers && (
                         <div style={{ fontSize: 12, marginTop: 4, color: "var(--fg-soft)", lineHeight: 1.6 }}>
-                          {t("report.evidence")}{evidence}
+                          {t("report.evidence")}{info.evidence_from_answers}
                         </div>
-                      )}
-                      {info.quote && (
-                        <blockquote style={{ margin: "10px 0 0", padding: "8px 10px", borderLeft: "2px solid var(--accent)", background: "rgba(129,140,248,0.05)", fontSize: 12, color: "var(--fg-soft)", fontStyle: "italic", lineHeight: 1.6 }}>
-                          «{info.quote}»
-                          {info.question_index != null && (
-                            <span style={{ display: "block", marginTop: 6, fontStyle: "normal", fontFamily: "var(--mono)", fontSize: 10, color: "var(--dim)" }}>
-                              {t("report.questionRef", { n: info.question_index })}
-                            </span>
-                          )}
-                        </blockquote>
                       )}
                     </>
                   ) : (

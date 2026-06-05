@@ -305,9 +305,9 @@ export const en = {
     participantBlock:
       "[PARTICIPANT]\nName: {name}\nAge: {age}\nEmail: {email}\n\n[AGE ADJUSTMENT]\n{guidance}\nAdapt question text and the four answer options to age and life situation. Keep the same 15 categories and psychoanalytic depth.",
     invalidJsonRetry:
-      "[SYSTEM: Previous response was invalid JSON (often unescaped quotes). Return ONLY one valid JSON object on one line. Do not use \" inside text fields — use « ». type question with question, category, questionNumber, options (4 items).]",
+      "[SYSTEM: Previous response was invalid JSON (often unescaped quotes). Return ONLY one valid JSON object on one line. Do not use \" inside text fields — use « ». You are in QUESTION phase: return ONLY type question (or rephrase/opinion). Set analysis_ready:true if ready, BUT STILL PROVIDE a next question in the JSON. Never type analysis unless the message explicitly says 'Generer analysis NÅ'.]",
     truncatedRetry:
-      "[SYSTEM: Previous response was too long and truncated. Return ONLY one compact JSON object type question on one line — NOT analysis. Max ~700 characters total. Short options and readiness_note.",
+      "[SYSTEM: Previous response was too long and truncated. Return ONLY one compact JSON object type question on one line — NOT analysis. Max ~700 characters total. Short options and readiness_note. You MUST return type question JSON even if you think analysis is ready — just set the analysis_ready:true flag. The app will show a button to the user.",
     forceAnalysis:
       "[SYSTEM: This is answer to Q {n}/{max}. Generate analysis NOW — no more questions.]",
     generateAnalysis: "[Generate full analysis]",

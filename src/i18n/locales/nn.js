@@ -305,9 +305,9 @@ export const nn = {
     participantBlock:
       "[DELTAKAR]\nNamn: {name}\nAlder: {age}\nE-post: {email}\n\n[ALDERSJUSTERING]\n{guidance}\nTilpass spørsmålstekst og dei fire svaralternativa til alder og livssituasjon. Behold same 15 kategoriar og psykoanalytisk djupn.",
     invalidJsonRetry:
-      "[SYSTEM: Førre svar var ugyldig JSON (ofte uescapede hermeteikn). Returner KUN eitt gyldig JSON-objekt på éi linje. Ikkje bruk \" inne i tekstfelt — bruk « ». type question med question, category, questionNumber, options (4 stk).]",
+      "[SYSTEM: Førre svar var ugyldig JSON (ofte uescapede hermeteikn). Returner KUN eitt gyldig JSON-objekt på éi linje. Ikkje bruk \" inne i tekstfelt — bruk « ». Du er i QUESTION fase: returner KUN type question (eller rephrase/opinion). Sett analysis_ready:true viss klar, men GI FORTSATT eit nytt spørsmål i JSON. Aldri type analysis med mindre meldinga eksplisitt seier 'Generer analysis NÅ'.]",
     truncatedRetry:
-      "[SYSTEM: Førre svar vart for langt og avkorta. Returner KUN eitt kompakt JSON-objekt type question på éi linje — IKKJE analysis. Maks ~700 teikn totalt. Korte alternativ og readiness_note.",
+      "[SYSTEM: Førre svar vart for langt og avkorta. Returner KUN eitt kompakt JSON-objekt type question på éi linje — IKKJE analysis. Maks ~700 teikn totalt. Korte alternativ og readiness_note. Du MÅ returnere type question JSON sjølv om du trur analysen er klar — sett berre flagget analysis_ready:true. Appen viser knapp til brukar.",
     forceAnalysis:
       "[SYSTEM: Dette er svar på spm {n}/{max}. Generer analysis NO — ikkje fleire spørsmål.]",
     generateAnalysis: "[Generer full analyse]",

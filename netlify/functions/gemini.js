@@ -248,6 +248,29 @@ export default async (request) => {
     if (useQuestionSchema) {
       const normalized = normalizeQuestionPayload(text);
       if (!normalized) {
+        // Graceful fallback: if the model output an analysis response during a question call
+        // (common when it decides analysis is ready around q15+), pass the text through so
+        // the frontend can parse it as analysis instead of showing error to the user.
+        const looksLikeAnalysis =
+          /"type"\s*:\s*"analysis"/.test(text) ||
+          /"frameworks"\s*:\s*\{/.test(text) ||
+          /## DOMINERENDE|## IDENTIFISERTE FORSVARSMEKANISMER/.test(text);
+        if (looksLikeAnalysis) {
+          return new Response(
+            JSON.stringify({
+              content: [{ type: "text", text }],
+              finishReason,
+              truncated: finishReason === "MAX_TOKENS",
+            }),
+            {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+              },
+            }
+          );
+        }
         return new Response(
           JSON.stringify({
             error:
