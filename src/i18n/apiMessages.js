@@ -26,7 +26,26 @@ function t(locale, key, vars) {
 
 export function formatStructuredAnswersForApi(answers, locale = "nb") {
   if (!answers?.length) return t(locale, "api.noAnswersYet");
-  return answers
+
+  // Aggressive cap for long sessions to prevent timeouts (Gemini slow on large prompts).
+  // Only detailed last ~10 answers + short note on earlier coverage.
+  let toFormat = answers;
+  const MAX_DETAILED = 10;
+  if (answers.length > MAX_DETAILED + 5) {
+    const older = answers.slice(0, -MAX_DETAILED);
+    const recent = answers.slice(-MAX_DETAILED);
+    const olderCats = [...new Set(older.map(a => a.categoryId).filter(Boolean))].sort((a,b)=>a-b);
+    const olderNote = {
+      index: 0,
+      category: t(locale, "api.unknownCategory"),
+      question: `(tidligere ${older.length} svar - komprimert)`,
+      answer: olderCats.length ? `Kategorier dekket tidligere: ${olderCats.join(', ')}` : 'Mange tidligere svar',
+      isCustom: false,
+    };
+    toFormat = [olderNote, ...recent];
+  }
+
+  return toFormat
     .map((a) =>
       t(locale, "api.answerLine", {
         index: a.index,

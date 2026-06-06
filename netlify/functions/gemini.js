@@ -194,7 +194,7 @@ export default async (request) => {
 
     const fetchSignal =
       typeof AbortSignal !== "undefined" && AbortSignal.timeout
-        ? AbortSignal.timeout(55000)
+        ? AbortSignal.timeout(120000)  // 2 minutes to accommodate longer prompts in late sessions
         : undefined;
 
     const response = await fetch(url, {
@@ -246,19 +246,27 @@ export default async (request) => {
     }
 
     if (useQuestionSchema) {
-      const normalized = normalizeQuestionPayload(text);
+      let t = String(text || "").trim();
+      // Strip markdown fences that Gemini sometimes adds despite schema
+      t = t.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      const first = t.indexOf('{');
+      if (first > 0) t = t.slice(first);
+      const last = t.lastIndexOf('}');
+      if (last > 0) t = t.slice(0, last + 1);
+
+      const normalized = normalizeQuestionPayload(t);
       if (!normalized) {
         // Graceful fallback: if the model output an analysis response during a question call
         // (common when it decides analysis is ready around q15+), pass the text through so
         // the frontend can parse it as analysis instead of showing error to the user.
         const looksLikeAnalysis =
-          /"type"\s*:\s*"analysis"/.test(text) ||
-          /"frameworks"\s*:\s*\{/.test(text) ||
-          /## DOMINERENDE|## IDENTIFISERTE FORSVARSMEKANISMER/.test(text);
+          /"type"\s*:\s*"analysis"/.test(t) ||
+          /"frameworks"\s*:\s*\{/.test(t) ||
+          /## DOMINERENDE|## IDENTIFISERTE FORSVARSMEKANISMER/.test(t);
         if (looksLikeAnalysis) {
           return new Response(
             JSON.stringify({
-              content: [{ type: "text", text }],
+              content: [{ type: "text", text: t }],
               finishReason,
               truncated: finishReason === "MAX_TOKENS",
             }),

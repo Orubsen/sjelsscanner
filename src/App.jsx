@@ -1107,8 +1107,8 @@ export default function App() {
     const requestOnce = async (apiMessages, retriesLeft = 2, retryKind = "json") => {
       const controller = new AbortController();
       const timeoutId = setTimeout(
-        () => controller.abort(new Error("Analysis request timed out after 90s")),
-        90000
+        () => controller.abort(new Error("Analysis request timed out after 180s")),
+        180000
       );
 
       try {
@@ -1322,7 +1322,7 @@ export default function App() {
         participant: saved.participant,
         skipPrepare: true,
         jsonMode: true,
-        maxTokens: 2048,
+        maxTokens: 1024,
       });
       if (result.type === "question" && result.question) {
         setCurrentQuestion(result.question);
@@ -1370,18 +1370,23 @@ export default function App() {
         "\n\n" +
         buildQuestionContextMessage(questionNumber, locale);
 
+      let callOptions = {
+        structuredAnswers: nextStructured,
+        participant,
+        jsonMode: true,
+        maxTokens: 1024,
+      };
+
       if (mustForceAnalysis(questionNumber)) {
         messageContent += `\n\n${apiT(locale, "api.forceAnalysis", { n: questionNumber, max: MAX_QUESTIONS })}`;
+        // When forcing analysis at max questions, do NOT use question schema.
+        // Let the model return the analysis JSON as instructed in the force prompt.
+        callOptions.jsonMode = false;
       }
 
       const newHistory = [...conversationHistory, { role: "user", content: messageContent }];
       try {
-        const result = await callClaude(newHistory, {
-          structuredAnswers: nextStructured,
-          participant,
-          jsonMode: true,
-          maxTokens: 2048,
-        });
+        const result = await callClaude(newHistory, callOptions);
         const analysisResult = normalizeAnalysis(result);
         const updatedHistory = [
           ...newHistory,
