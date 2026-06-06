@@ -24,16 +24,16 @@ function t(locale, key, vars) {
   return interpolate(String(o ?? key), vars);
 }
 
-export function formatStructuredAnswersForApi(answers, locale = "nb") {
+export function formatStructuredAnswersForApi(answers, locale = "nb", maxDetailed = 10) {
   if (!answers?.length) return t(locale, "api.noAnswersYet");
 
-  // Aggressive cap for long sessions to prevent timeouts (Gemini slow on large prompts).
-  // Only detailed last ~10 answers + short note on earlier coverage.
+  // Cap for long sessions to keep Gemini calls fast (prevents "tok for lang tid" timeouts).
+  // For regular question turns: last ~10.
+  // For analysis (step1/step2): allow more (up to 25) so the report has good data.
   let toFormat = answers;
-  const MAX_DETAILED = 10;
-  if (answers.length > MAX_DETAILED + 5) {
-    const older = answers.slice(0, -MAX_DETAILED);
-    const recent = answers.slice(-MAX_DETAILED);
+  if (answers.length > maxDetailed + 5) {
+    const older = answers.slice(0, -maxDetailed);
+    const recent = answers.slice(-maxDetailed);
     const olderCats = [...new Set(older.map(a => a.categoryId).filter(Boolean))].sort((a,b)=>a-b);
     const olderNote = {
       index: 0,

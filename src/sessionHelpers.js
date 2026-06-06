@@ -133,10 +133,11 @@ export function prepareMessagesForApi(messages, structuredAnswers, participant, 
 export function buildStep1Messages(structuredAnswers, participant, locale = "nb") {
   const p = buildParticipantContext(participant, locale);
   const step1 = getAnalysisStep1(locale);
+  // For analysis compression, allow more history (up to ~25) so step1 has good data for the report.
   return [
     {
       role: "user",
-      content: `${p ? `${p}\n\n` : ""}${step1}\n\n${structuredAnswersLabel(locale)}\n${formatStructuredAnswersForApi(structuredAnswers, locale)}`,
+      content: `${p ? `${p}\n\n` : ""}${step1}\n\n${structuredAnswersLabel(locale)}\n${formatStructuredAnswersForApi(structuredAnswers, locale, 25)}`,
     },
   ];
 }
@@ -148,11 +149,12 @@ export function buildStep2Messages(structuredAnswers, step1Result, conversationT
     JSON.stringify(step1Result);
   const p = buildParticipantContext(participant, locale);
   const step2 = getAnalysisStep2(locale);
+  // For final report, allow more history (25) for quality.
   return [
     ...(conversationTail || []).slice(-4),
     {
       role: "user",
-      content: `${p ? `${p}\n\n` : ""}${step2}\n\nINTERN OPPSUMMERING:\n${summary}\n\n${structuredAnswersLabel(locale)}\n${formatStructuredAnswersForApi(structuredAnswers, locale)}`,
+      content: `${p ? `${p}\n\n` : ""}${step2}\n\nINTERN OPPSUMMERING:\n${summary}\n\n${structuredAnswersLabel(locale)}\n${formatStructuredAnswersForApi(structuredAnswers, locale, 25)}`,
     },
   ];
 }

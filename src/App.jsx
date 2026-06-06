@@ -1385,6 +1385,16 @@ export default function App() {
       }
 
       const newHistory = [...conversationHistory, { role: "user", content: messageContent }];
+
+      // For the final answer at max questions, short-circuit directly to the dedicated
+      // analysis flow (step1 + step2) instead of trying another LLM call with the force
+      // prompt. This avoids the heavy call that often times out near 50 questions.
+      if (mustForceAnalysis(questionNumber)) {
+        setConversationHistory(newHistory);
+        await triggerAnalysis(newHistory);
+        return;
+      }
+
       try {
         const result = await callClaude(newHistory, callOptions);
         const analysisResult = normalizeAnalysis(result);
