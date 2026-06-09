@@ -288,6 +288,9 @@ export default async (request) => {
       const last = t.lastIndexOf('}');
       if (last > 0) t = t.slice(0, last + 1);
 
+      // [DIAG] Logg finishReason og råtekstlengde rett før validering
+      console.log('[DIAG] finishReason:', finishReason, 'rawLength:', t?.length);
+
       const normalized = normalizeQuestionPayload(t);
       if (!normalized) {
         // Graceful fallback: if the model output an analysis response during a question call

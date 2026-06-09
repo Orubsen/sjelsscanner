@@ -104,10 +104,10 @@ export function prependParticipantMessages(messages, participant, locale = "nb")
 }
 
 export function buildLeanQuestionMessages(structuredAnswers, messages, participant, locale = "nb") {
-  // For question turns, send max 6 detailed answers to keep input tokens low and
-  // prevent Gemini from slurring JSON schema adherence in long sessions (q16+).
+  // For question turns, send max 3 detailed answers to keep input tokens minimal.
+  // This prevents Gemini from degrading JSON schema adherence in long sessions (q16+).
   // Analysis calls (step1/step2) use their own messages with maxDetailed=25.
-  const summary = formatStructuredAnswersForApi(structuredAnswers, locale, 6);
+  const summary = formatStructuredAnswersForApi(structuredAnswers, locale, 3);
   const last = messages?.[messages.length - 1];
   const out = [
     {
