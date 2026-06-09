@@ -57,20 +57,25 @@ export async function markParticipantAnalysisComplete(participantId, questionCou
   }
 }
 
+/**
+ * K2 – Sender passord i request-body (ikke som Authorization-header med råpassord).
+ * Returnerer sesjonstokenet fra serveren — ikke råpassordet — slik at klienten
+ * aldri trenger å lagre eller sende passordet igjen etter pålogging.
+ */
 export async function verifyAdminPassword(password) {
   const response = await fetch("/api/verify-admin", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${password}`,
-    },
-    body: JSON.stringify({}),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
   });
   const data = await parseJsonResponse(response);
   if (!response.ok) {
     throw new Error(data?.error || "Feil passord eller ingen tilgang.");
   }
-  return true;
+  if (!data?.token) {
+    throw new Error("Serveren returnerte ikke et gyldig token.");
+  }
+  return data.token;
 }
 
 export async function fetchParticipantsList(adminToken) {
@@ -111,7 +116,7 @@ export function participantsToCsv(rows) {
 }
 
 export function downloadCsv(filename, csvText) {
-  const blob = new Blob(["\uFEFF" + csvText], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob(["﻿" + csvText], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

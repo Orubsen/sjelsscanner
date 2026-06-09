@@ -1,49 +1,22 @@
-export default async (request) => {
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'API key not configured' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-
-  try {
-    const body = await request.json();
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify(body)
-    });
-
-    const data = await response.json();
-
-    return new Response(JSON.stringify(data), {
-      status: response.status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
+/**
+ * Dette endepunktet er deaktivert.
+ *
+ * Den opprinnelige implementasjonen videresendte vilkårlige forespørsler
+ * til Anthropic API uten autentisering eller tilgangskontroll, og er
+ * ikke lenger i bruk av frontend (appen bruker /api/gemini).
+ *
+ * Endepunktet returnerer 410 Gone for alle forespørsler.
+ */
+export default async () => {
+  return new Response(
+    JSON.stringify({ error: "Dette endepunktet er deaktivert." }),
+    {
+      status: 410,
+      headers: { "Content-Type": "application/json" },
+    }
+  );
 };
 
 export const config = {
-  path: '/api/claude'
+  path: "/api/claude",
 };

@@ -1,5 +1,23 @@
 const DEFAULT_MODEL = "gemini-3.5-flash";
 
+// ---------------------------------------------------------------------------
+// K3 – CORS låst til eget domene i produksjon
+// ---------------------------------------------------------------------------
+
+function getAllowedOrigin() {
+  if (process.env.CONTEXT === "dev") return "*";
+  return process.env.ALLOWED_ORIGIN || "https://kjernekoden.netlify.app";
+}
+
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": getAllowedOrigin(),
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
+
 /** JSON Schema for mapping-phase responses — inlined (not a separate functions file). */
 const QUESTION_RESPONSE_SCHEMA = {
   type: "object",
@@ -146,10 +164,15 @@ function normalizeQuestionPayload(text) {
 }
 
 export default async (request) => {
+  // K3 – OPTIONS preflight
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders() });
+  }
+
   if (request.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...corsHeaders() },
     });
   }
 
@@ -160,7 +183,10 @@ export default async (request) => {
         error:
           "GEMINI_API_KEY not configured. Get a free key at https://aistudio.google.com/apikey",
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders() },
+      }
     );
   }
 
@@ -214,7 +240,10 @@ export default async (request) => {
         JSON.stringify({
           error: `Gemini returnerte ugyldig svar: ${preview}`,
         }),
-        { status: 502, headers: { "Content-Type": "application/json" } }
+        {
+          status: 502,
+          headers: { "Content-Type": "application/json", ...corsHeaders() },
+        }
       );
     }
 
@@ -223,10 +252,7 @@ export default async (request) => {
         data?.error?.message || data?.error || `Gemini HTTP ${response.status}`;
       return new Response(JSON.stringify({ error: message }), {
         status: response.status,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
+        headers: { "Content-Type": "application/json", ...corsHeaders() },
       });
     }
 
@@ -241,7 +267,10 @@ export default async (request) => {
     if (!text) {
       return new Response(
         JSON.stringify({ error: `Empty Gemini response (finish: ${finishReason})` }),
-        { status: 502, headers: { "Content-Type": "application/json" } }
+        {
+          status: 502,
+          headers: { "Content-Type": "application/json", ...corsHeaders() },
+        }
       );
     }
 
@@ -272,10 +301,7 @@ export default async (request) => {
             }),
             {
               status: 200,
-              headers: {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-              },
+              headers: { "Content-Type": "application/json", ...corsHeaders() },
             }
           );
         }
@@ -285,7 +311,10 @@ export default async (request) => {
               "Gemini returnerte ugyldig spørsmåls-JSON. Prøv igjen (appen ber om kompakt svar).",
             finishReason,
           }),
-          { status: 502, headers: { "Content-Type": "application/json" } }
+          {
+            status: 502,
+            headers: { "Content-Type": "application/json", ...corsHeaders() },
+          }
         );
       }
       text = normalized;
@@ -299,10 +328,7 @@ export default async (request) => {
       }),
       {
         status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
+        headers: { "Content-Type": "application/json", ...corsHeaders() },
       }
     );
   } catch (error) {
@@ -312,11 +338,11 @@ export default async (request) => {
       JSON.stringify({
         error: isTimeout
           ? "Gemini tok for lang tid. Prøv igjen – appen sender nå mindre data per runde."
-          : msg,
+          : "Intern serverfeil. Prøv igjen.",
       }),
       {
         status: isTimeout ? 504 : 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders() },
       }
     );
   }

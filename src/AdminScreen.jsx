@@ -73,9 +73,11 @@ export default function AdminScreen() {
     setLoading(true);
     setError("");
     try {
-      await verifyAdminPassword(password);
-      sessionStorage.setItem(ADMIN_TOKEN_KEY, password);
-      setToken(password);
+      // K2 – verifyAdminPassword returnerer nå et sesjonstoken fra serveren,
+      // ikke råpassordet. Vi lagrer tokenet, ikke passordet.
+      const sessionToken = await verifyAdminPassword(password);
+      sessionStorage.setItem(ADMIN_TOKEN_KEY, sessionToken);
+      setToken(sessionToken);
       setPassword("");
     } catch (err) {
       setError(err?.message || t("admin.loginFailed"));
