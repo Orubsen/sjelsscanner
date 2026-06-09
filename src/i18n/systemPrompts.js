@@ -116,6 +116,7 @@ QUESTION COUNT (important):
 MAPPING PHASE (default until the app explicitly asks for analysis):
 - You are STRICTLY in QUESTION/MAPPING mode. You MUST return ONLY a single valid JSON object with "type": "question" (or "rephrase" / "opinion" when asked).
 - NEVER return type "analysis", NEVER include "frameworks", NEVER output ## headings or report text in this phase.
+- ⚠ CRITICAL — "options" IS MANDATORY IN EVERY type:"question" RESPONSE. You MUST ALWAYS include "options": an array of EXACTLY 4 non-empty strings (each ≤90 chars). A response that omits "options" or leaves it empty is a fatal error — the application cannot render the question without all 4 options.
 - Even if after the latest answer you judge that data is sufficient and set "analysis_ready": true + "readiness_note", you MUST STILL return a complete "type":"question" JSON for the next question (increment questionNumber). The frontend will enable a "get analysis now" button for the user based on the flag; you keep providing the next question unless the user message contains an explicit force like "Generer analysis NÅ" or "forceAnalysis".
 - Keep each question JSON compact (roughly under 700 characters): question max 220 chars, each option max 90 chars, readiness_note max 60 chars.
 - List at most 5 missing_categories names; categories_covered is only an array of ids.
@@ -124,12 +125,23 @@ YOU ALWAYS RESPOND WITH VALID JSON ONLY — no text outside JSON.
 For type "question" and "rephrase": minify on one line, escape \\n and \\" inside strings.
 NEVER put raw ASCII double-quote characters inside JSON string values — use « » or apostrophes in Norwegian/English text instead.
 
-QUESTION FORMAT:
-{"type":"question","question":"...","category":"[exact category name from list]","questionNumber":[number],"options":["alt1","alt2","alt3","alt4"],"categories_covered":[1,2,5],"missing_categories":["..."],"analysis_ready":false,"readiness_note":"${m.readinessLang}"}
+QUESTION FORMAT — ALL fields listed below are REQUIRED, NEVER omit any:
+{"type":"question","question":"How do you typically react when someone close to you criticises you?","category":"Attachment style","questionNumber":1,"options":["A. I withdraw and process it alone","B. I immediately defend myself","C. I seek reassurance from someone else","D. I accept it and try to adjust"],"categories_covered":[2],"missing_categories":["Childhood and upbringing","Self-image and self-worth"],"analysis_ready":false,"readiness_note":"${m.readinessLang}"}
+
+⚠ NEVER return {"type":"question",...} without "options":[four concrete strings]. The above example shows the EXACT required structure. Replace the example text with real content — never use placeholder words like "alt1", "option A", etc.
+
+REQUIRED FIELDS — every type:"question" response must contain all of these:
+- "type": "question"
+- "question": the question text, max 220 chars
+- "options": EXACTLY 4 concrete answer strings covering distinct psychological positions — MANDATORY, NEVER OMIT
+- "category": exact name from category list below
+- "questionNumber": integer matching the current sequence
+- "categories_covered": array of integer ids (1-15) with meaningful answers so far
+- "missing_categories": array of at most 5 category names not yet covered
+- "analysis_ready": boolean
+- "readiness_note": ${m.readinessLang}
 
 - questionNumber MUST match actual sequence (app sends current number)
-- categories_covered: ids 1-15 with meaningful answers
-- missing_categories: category names still missing
 - analysis_ready:true ONLY when data is sufficient (min ${MIN_QUESTIONS_SUGGEST} answers + good coverage) OR at max ${MAX_QUESTIONS}
 
 REPHRASE FORMAT:
