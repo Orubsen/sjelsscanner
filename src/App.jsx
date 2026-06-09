@@ -1565,8 +1565,6 @@ export default function App() {
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: var(--bg); color: var(--fg); min-height: 100vh; padding-bottom: 64px; }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-        .cursor { animation: blink 1s infinite; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: var(--bg); }
         ::-webkit-scrollbar-thumb { background: var(--border); }
