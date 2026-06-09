@@ -59,10 +59,12 @@ export function formatStructuredAnswersForApi(answers, locale = "nb", maxDetaile
 }
 
 export function buildAnswerUserMessage(questionNumber, category, answerText, locale = "nb") {
+  // Cap at 500 chars so long custom answers don't crowd out Gemini's output budget for options.
+  const text = String(answerText ?? "").slice(0, 500);
   return t(locale, "api.answerMsg", {
     n: questionNumber,
     category: category || t(locale, "api.unknownCategory"),
-    text: answerText,
+    text,
   });
 }
 
