@@ -1,4 +1,8 @@
-const DEFAULT_MODEL = "gemini-3.5-flash";
+// F1 – Modellnavn kan overstyres via Netlify-miljøvariabel GEMINI_MODEL.
+// Standard: "gemini-3.5-flash". Sett variabelen i Netlify-dashbordet
+// under Site configuration → Environment variables dersom du vil bytte modell
+// uten å endre kode.
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
 
 // ---------------------------------------------------------------------------
 // K3 – CORS låst til eget domene i produksjon
@@ -234,11 +238,12 @@ export default async (request) => {
     let data;
     try {
       data = rawText ? JSON.parse(rawText) : {};
-    } catch {
-      const preview = String(rawText || "").slice(0, 120);
+    } catch (parseErr) {
+      // F5 – Logg råsvaret server-side; send generisk melding til klient.
+      console.error("gemini: invalid JSON from Gemini API:", parseErr, "| raw:", String(rawText || "").slice(0, 500));
       return new Response(
         JSON.stringify({
-          error: `Gemini returnerte ugyldig svar: ${preview}`,
+          error: "Gemini returnerte eit ugyldig svar. Prøv igjen.",
         }),
         {
           status: 502,
@@ -332,6 +337,8 @@ export default async (request) => {
       }
     );
   } catch (error) {
+    // F5 – Logg full feil server-side; send generisk melding til klient.
+    console.error("gemini function error:", error);
     const msg = String(error?.message || error || "Unknown error");
     const isTimeout = /timeout|aborted/i.test(msg);
     return new Response(

@@ -35,11 +35,12 @@ function detectInitialLocale() {
   try {
     const saved = localStorage.getItem(LOCALE_KEY);
     if (saved && PACKS[saved]) {
-      document.documentElement.lang = saved === "en" ? "en" : "no";
+      // F6 – Korrekt BCP 47-kode per målform
+      document.documentElement.lang = saved === "en" ? "en" : saved === "nn" ? "nn" : "nb";
       return saved;
     }
   } catch (_) {}
-  document.documentElement.lang = "no";
+  document.documentElement.lang = "nb";
   return "nb";
 }
 
@@ -52,7 +53,8 @@ export function I18nProvider({ children }) {
     try {
       localStorage.setItem(LOCALE_KEY, code);
     } catch (_) {}
-    document.documentElement.lang = code === "en" ? "en" : "no";
+    // F6 – Korrekt BCP 47-kode per målform
+    document.documentElement.lang = code === "en" ? "en" : code === "nn" ? "nn" : "nb";
   }, []);
 
   const pack = PACKS[locale] || PACKS.nb;

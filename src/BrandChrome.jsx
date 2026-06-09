@@ -30,7 +30,7 @@ const headerLogoStyle = {
   width: 36,
   height: 36,
   opacity: 0.42,
-  filter: "drop-shadow(0 0 12px rgba(129,140,248,0.15))",
+  filter: "drop-shadow(0 0 12px var(--accent-alpha-15))",
 };
 
 const footerWrapStyle = {
@@ -122,7 +122,7 @@ export function IntroBrandMark() {
         height: 56,
         marginBottom: 20,
         opacity: 0.85,
-        filter: "drop-shadow(0 0 20px rgba(129,140,248,0.25))",
+        filter: "drop-shadow(0 0 20px var(--accent-alpha-25))",
       }}
     />
   );

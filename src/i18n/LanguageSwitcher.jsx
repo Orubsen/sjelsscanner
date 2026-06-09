@@ -41,7 +41,7 @@ export function LanguageSwitcher({ style = {}, compact = false }) {
               ...btnBase,
               borderColor: active ? "var(--accent)" : "var(--border)",
               color: active ? "var(--accent)" : "var(--dim)",
-              background: active ? "rgba(129,140,248,0.1)" : "transparent",
+              background: active ? "var(--accent-alpha-10)" : "transparent",
             }}
           >
             {opt.short}

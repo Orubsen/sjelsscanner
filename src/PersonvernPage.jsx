@@ -25,18 +25,7 @@ export default function PersonvernPage() {
 
   return (
     <div className="app-root">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Crimson+Pro:wght@400&display=swap');
-        :root {
-          --bg: #080a0f; --surface: #0d1117; --border: #1c2230;
-          --fg: #e2e8f0; --fg-soft: #a8b4c4; --dim: #4a5568;
-          --accent: #818cf8; --mono: 'IBM Plex Mono', monospace;
-          --body: 'Crimson Pro', serif;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg); color: var(--fg); min-height: 100vh; padding-bottom: 72px; }
-        a { color: var(--accent); }
-      `}</style>
+      {/* F3 – :root, @import og base-stiler er flytta til theme.css (importert globalt via main.jsx) */}
 
       <div
         className="layout-shell"

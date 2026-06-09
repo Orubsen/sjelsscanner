@@ -107,20 +107,7 @@ export default function AdminScreen() {
 
   return (
     <div className="app-root">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Crimson+Pro:wght@400&display=swap');
-        :root {
-          --bg: #080a0f; --surface: #0d1117; --border: #1c2230;
-          --fg: #e2e8f0; --fg-soft: #a8b4c4;
-          --dim: #4a5568; --dim-2: #2d3748;
-          --accent: #818cf8;
-          --mono: 'IBM Plex Mono', monospace;
-          --body: 'Crimson Pro', serif;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg); color: var(--fg); min-height: 100vh; }
-        input { font-family: var(--body); }
-      `}</style>
+      {/* F3 – :root, @import og base-stiler er flytta til theme.css (importert globalt via main.jsx) */}
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "48px 24px 80px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 32 }}>
@@ -151,7 +138,7 @@ export default function AdminScreen() {
         </div>
 
         {error && (
-          <div style={{ marginBottom: 20, padding: 12, border: "1px solid #f87171", color: "#fecaca", fontSize: 12, fontFamily: "var(--mono)" }}>
+          <div style={{ marginBottom: 20, padding: 12, border: "1px solid var(--error)", color: "var(--error-soft)", fontSize: 12, fontFamily: "var(--mono)" }}>
             {error}
           </div>
         )}

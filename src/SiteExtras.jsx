@@ -52,8 +52,8 @@ function InfoDropdown({ title, titleColor = "var(--dim)", variant = "default", s
           ...panelStyle,
           ...(isCrisis
             ? {
-                borderColor: "rgba(248,113,113,0.35)",
-                background: "rgba(248,113,113,0.06)",
+                borderColor: "var(--crisis-border)",
+                background: "var(--crisis-bg)",
               }
             : { color: "var(--fg-soft)" }),
         }}
@@ -80,7 +80,7 @@ export function CrisisHelpBox({ compact = false, style = {} }) {
   return (
     <InfoDropdown
       title={t("crisis.title")}
-      titleColor="#fca5a5"
+      titleColor="var(--crisis)"
       variant="crisis"
       style={{ marginBottom: compact ? 8 : 12, ...style }}
     >

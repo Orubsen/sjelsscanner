@@ -1,7 +1,87 @@
-/**
- * Desktop: større typografi og bredere layout (mobil uendret).
- * Skalerer hele appen på PC — tilsvarer ca. 150–185% uten nettleser-zoom.
- */
+/* F3 – Sentralisert Google Fonts-import (alle ruter, via main.jsx → theme.css).
+ * Merk: @import MÅ stå øverst i CSS-filen — andre regler lenger ned. */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Crimson+Pro:wght@400&display=swap');
+
+/* -----------------------------------------------------------------------
+ * F3 – Designsystem-variabler. Definert éin gong her, tilgjengelig overalt.
+ * ----------------------------------------------------------------------- */
+:root {
+  /* Bakgrunnar og overflater */
+  --bg: #080a0f;
+  --surface: #0d1117;
+  --border: #1c2230;
+
+  /* Tekst */
+  --fg: #e2e8f0;
+  --fg-soft: #a8b4c4;
+  --dim: #4a5568;
+  --dim-2: #2d3748;
+
+  /* Aksent */
+  --accent: #818cf8;
+
+  /* F2 – Feilfarger (valideringsfeil, admin-feil) */
+  --error: #f87171;
+  --error-soft: #fecaca;
+
+  /* F2 – Kriselinje-farger (CrisisHelpBox) */
+  --crisis: #fca5a5;
+  --crisis-border: rgba(248, 113, 113, 0.35);
+  --crisis-bg: rgba(248, 113, 113, 0.06);
+
+  /* F2 – Aksent med transparens (hover, aktiv bakgrunn, skyggar) */
+  --accent-alpha-10: rgba(129, 140, 248, 0.10);
+  --accent-alpha-15: rgba(129, 140, 248, 0.15);
+  --accent-alpha-25: rgba(129, 140, 248, 0.25);
+
+  /* Typografi */
+  --mono: 'IBM Plex Mono', monospace;
+  --body: 'Crimson Pro', serif;
+}
+
+/* Base-stiler som gjeld alle sider */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+}
+
+input, textarea, select {
+  font-family: var(--body);
+}
+
+a {
+  color: var(--accent);
+}
+
+/* -----------------------------------------------------------------------
+ * F4 – Zoom-skalering på desktop: val og avveiing.
+ *
+ * Appen er designa for ein mobil tekstbreidd (~360–480 px). På desktop ville
+ * den dukka opp som ei smal stripe utan skalering. I staden for å skrive om
+ * heile layouten til responsiv grid bruker vi CSS `zoom`-eigenskapen:
+ *
+ *   zoom: 1.75 ved ≥900 px  →  vert visuelt ca. 150 % utan nettleser-zoom
+ *   zoom: 1.9  ved ≥1200 px
+ *   zoom: 2.0  ved ≥1536 px
+ *
+ * Fordel: heile brukargrensesnittet, inkl. modal-ar, popups og fixed-element,
+ * skalerer konsekvent — ingen oppstykkingsarbeid per komponent.
+ *
+ * Ulempe: `zoom` er ikkje del av CSS-standarden (W3C), men er støtta i alle
+ * moderne nettlesarar (Chrome, Edge, Safari, Firefox 126+). Som fallback for
+ * eldre Firefox bruker vi `transform: scale()` via @supports-blokka nedanfor.
+ *
+ * Konsekvens for utvikling: breakpoint-verdiar i media queries refererer til
+ * uzooma pikslar. Ein 900px-skjerm med zoom:1.75 oppfører seg som ein
+ * ~514px-visningsport for innhaldet.
+ * ----------------------------------------------------------------------- */
 
 @media (min-width: 900px) {
   :root {

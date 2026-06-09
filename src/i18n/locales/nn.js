@@ -320,5 +320,5 @@ export const nn = {
       "[KRITISK: Returner full analysis JSON no. Obligatorisk: frameworks med quote og question_index, short_summary, conflicts, clinical_followup, analysis med ## og Observasjon/Tolkning/Usikkerheit.]",
   },
   dateLocale: "nn-NO",
-  htmlLang: "no",
+  htmlLang: "nn", // F6 – BCP 47: "nn" for nynorsk (ikkje "no" som er generisk norsk)
 };
