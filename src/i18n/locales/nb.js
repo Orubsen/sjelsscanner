@@ -311,6 +311,8 @@ export const nb = {
       "[DELTAKER]\nNavn: {name}\nAlder: {age}\nE-post: {email}\n\n[ALDERSJUSTERING]\n{guidance}\nTilpass spørsmålstekst og de fire svaralternativene til alder og livssituasjon. Behold samme 15 kategorier og psykoanalytisk dybde.",
     invalidJsonRetry:
       "[SYSTEM: Forrige svar var ugyldig JSON (ofte uescapede anførselstegn). Returner KUN ett gyldig JSON-objekt på én linje. Ikke bruk \" inne i tekstfelt — bruk « ». Du er i QUESTION fase: returner KUN type question (eller rephrase/opinion). Sett analysis_ready:true hvis klar, men GI FORTSATT et nytt spørsmål i JSON. Aldri type analysis med mindre meldingen eksplisitt sier 'Generer analysis NÅ'.]",
+    incompleteOptionsRetry:
+      "[SYSTEM: KRITISK FEIL — forrige svar manglet feltet \"options\" eller hadde færre enn 4 alternativer. \"options\" er OBLIGATORISK i hvert eneste type:\"question\"-svar. Returner nå ett gyldig JSON-objekt med NØYAKTIG 4 konkrete svaralternativer i \"options\"-arrayet. Eksempel: \"options\":[\"Alternativ A\",\"Alternativ B\",\"Alternativ C\",\"Alternativ D\"]. Svar KUN med JSON på én linje — ingen forklaring utenfor JSON.]",
     truncatedRetry:
       "[SYSTEM: Forrige svar ble for langt og avkuttet. Returner KUN ett kompakt JSON-objekt type question på én linje — IKKE analysis. Maks ~700 tegn totalt. Korte alternativer og readiness_note. Du MÅ returnere type question JSON selv om du tror analysen er klar — sett bare flagget analysis_ready:true. Appen viser knapp til bruker.",
     forceAnalysis:

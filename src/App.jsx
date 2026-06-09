@@ -1139,13 +1139,15 @@ export default function App() {
           console.log("[DIAG] 502+retry signal mottatt. retriesLeft=", retriesLeft, "| error=", data?.error);
           if (retriesLeft > 0) {
             console.log("[DIAG] Starter retry. retriesLeft etter:", retriesLeft - 1);
+            // Use a specific retry message when options are missing — generic JSON retry
+            // does not tell Gemini which field is wrong, so Gemini keeps ignoring options.
+            const retryMsg = data?.error === "incomplete_response"
+              ? apiT(locale, "api.incompleteOptionsRetry")
+              : apiT(locale, "api.invalidJsonRetry");
             return requestOnce(
               [
                 ...apiMessages,
-                {
-                  role: "user",
-                  content: apiT(locale, "api.invalidJsonRetry"),
-                },
+                { role: "user", content: retryMsg },
               ],
               retriesLeft - 1,
               "incomplete"

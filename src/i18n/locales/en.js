@@ -306,6 +306,8 @@ export const en = {
       "[PARTICIPANT]\nName: {name}\nAge: {age}\nEmail: {email}\n\n[AGE ADJUSTMENT]\n{guidance}\nAdapt question text and the four answer options to age and life situation. Keep the same 15 categories and psychoanalytic depth.",
     invalidJsonRetry:
       "[SYSTEM: Previous response was invalid JSON (often unescaped quotes). Return ONLY one valid JSON object on one line. Do not use \" inside text fields — use « ». You are in QUESTION phase: return ONLY type question (or rephrase/opinion). Set analysis_ready:true if ready, BUT STILL PROVIDE a next question in the JSON. Never type analysis unless the message explicitly says 'Generer analysis NÅ'.]",
+    incompleteOptionsRetry:
+      "[SYSTEM: CRITICAL ERROR — previous response was missing the \"options\" field or had fewer than 4 options. \"options\" is MANDATORY in every type:\"question\" response. Return one valid JSON object now with EXACTLY 4 concrete answer strings in the \"options\" array. Example: \"options\":[\"Option A\",\"Option B\",\"Option C\",\"Option D\"]. Respond with JSON only on one line — no explanation outside the JSON.]",
     truncatedRetry:
       "[SYSTEM: Previous response was too long and truncated. Return ONLY one compact JSON object type question on one line — NOT analysis. Max ~700 characters total. Short options and readiness_note. You MUST return type question JSON even if you think analysis is ready — just set the analysis_ready:true flag. The app will show a button to the user.",
     forceAnalysis:
