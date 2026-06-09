@@ -340,7 +340,10 @@ export default async (request) => {
 
       // Validate that question responses always include all 4 options.
       // Gemini sometimes ignores the responseSchema and returns {"type":"question"} without
-      // "options" – this guard rejects that and signals the client to retry automatically.
+      // "options" – attempt an immediate server-side retry at temperature=0 before
+      // falling back to the client-side retry signal.
+      // effectiveNorm tracks which normalised payload to use (original or retry).
+      let effectiveNorm = normalized;
       try {
         const parsedCheck = JSON.parse(normalized);
         if (
@@ -348,21 +351,85 @@ export default async (request) => {
           (!Array.isArray(parsedCheck.options) || parsedCheck.options.length < 4)
         ) {
           console.error(
-            "gemini: spørsmål manglar options – sender retry-signal. options=",
+            "gemini: spørsmål manglar options – prøver server-side retry. options=",
             parsedCheck.options,
             "| raw (200 tegn):", t.slice(0, 200)
           );
-          return new Response(
-            JSON.stringify({ error: "incomplete_response", retry: true, finishReason }),
-            {
-              status: 502,
-              headers: { "Content-Type": "application/json", ...corsHeaders() },
+
+          // Server-side immediate retry: append the bad response + explicit correction prompt,
+          // then call Gemini again at temperature=0 (fully deterministic schema adherence).
+          // Bilingual: covers both Norwegian and English sessions.
+          const retryInstruction =
+            "[CRITICAL ERROR / KRITISK FEIL: options missing. Return ONE valid JSON object — same question, same questionNumber — but NOW include EXACTLY 4 non-empty concrete answer strings in the \"options\" array. Example: {\"type\":\"question\",\"question\":\"...\",\"category\":\"...\",\"questionNumber\":8,\"options\":[\"A. ...\",\"B. ...\",\"C. ...\",\"D. ...\"],\"categories_covered\":[],\"missing_categories\":[],\"analysis_ready\":false,\"readiness_note\":\"\"}. JSON only, no other text.]";
+
+          const retryContents = [
+            ...geminiBody.contents,
+            { role: "model", parts: [{ text: t }] },
+            { role: "user", parts: [{ text: retryInstruction }] },
+          ];
+          const retryGeminiBody = {
+            ...geminiBody,
+            contents: retryContents,
+            generationConfig: {
+              ...generationConfig,
+              temperature: 0,
+            },
+          };
+          // Tight timeout for server-side retry: 7s leaves room within the 10s function limit.
+          const retrySignal = typeof AbortSignal !== "undefined" && AbortSignal.timeout
+            ? AbortSignal.timeout(7000)
+            : undefined;
+
+          let retryOk = false;
+          try {
+            const retryResp = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(retryGeminiBody),
+              signal: retrySignal,
+            });
+            if (retryResp.ok) {
+              const retryData = await retryResp.json();
+              let retryText = retryData?.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join("") || "";
+              if (retryText) {
+                // Strip fences and normalise
+                retryText = String(retryText).trim()
+                  .replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+                const ri = retryText.indexOf('{');
+                if (ri > 0) retryText = retryText.slice(ri);
+                const rl = retryText.lastIndexOf('}');
+                if (rl >= 0) retryText = retryText.slice(0, rl + 1);
+
+                const retryNorm = normalizeQuestionPayload(retryText);
+                if (retryNorm) {
+                  const retryParsed = JSON.parse(retryNorm);
+                  if (Array.isArray(retryParsed.options) && retryParsed.options.length >= 4) {
+                    console.log("gemini: server-side retry lykkast – options OK");
+                    effectiveNorm = retryNorm;
+                    retryOk = true;
+                  }
+                }
+              }
             }
-          );
+          } catch (retryErr) {
+            console.error("gemini: server-side retry feilet:", retryErr?.message);
+          }
+
+          if (!retryOk) {
+            // Server-side retry also failed – fall back to client-side retry signal.
+            console.error("gemini: server-side retry gav ikkje 4 options – sender retry-signal til klient");
+            return new Response(
+              JSON.stringify({ error: "incomplete_response", retry: true, finishReason }),
+              {
+                status: 502,
+                headers: { "Content-Type": "application/json", ...corsHeaders() },
+              }
+            );
+          }
         }
       } catch { /* normalized er garantert gyldig JSON frå normalizeQuestionPayload */ }
 
-      text = normalized;
+      text = effectiveNorm;
     }
 
     return new Response(
