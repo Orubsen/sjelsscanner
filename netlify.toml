@@ -1,27 +1,21 @@
 [build]
-  command = "npm run build"
-  publish = "dist"
-  functions = "netlify/functions"
+command = "npm run build"
+publish = "dist"
+functions = "netlify/functions"
 
 [functions]
-  node_bundler = "esbuild"
-  # Analyse-kall til Gemini med full svarhistorikk tar 20-30s.
-  # Netlify Pro støtter opptil 26s – dette forhindrer at funksjonen
-  # blir drept før Gemini returnerer komplett analyse-JSON.
-  timeout = 26
-
-# Deltakerdata (navn, alder, e-post) lagres i Netlify Blobs via save-participant.
+node_bundler = "esbuild"
+timeout = 26
 
 [dev]
-  # Local Netlify dev: allow Gemini proxy calls up to 60s (default can be ~10s)
-  functionsTimeout = 60
+functionsTimeout = 60
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
+from = "/api/*"
+to = "/.netlify/functions/:splat"
+status = 200
 
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+from = "/*"
+to = "/index.html"
+status = 200
