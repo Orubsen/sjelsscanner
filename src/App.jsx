@@ -1132,8 +1132,9 @@ export default function App() {
 
         const data = await parseApiResponse(response);
 
-        // Server signaliserte at Gemini returnerte ufullstendig svar (t.d. manglande options).
-        // Prøv automatisk på nytt i staden for å sende feil til brukaren.
+        // Server signaliserte at Gemini returnerte ufullstendig svar (t.d. manglande options
+        // eller ugyldig JSON som ikkje kan parses). Prøv automatisk på nytt i staden for å
+        // vise feil til brukaren. Begge 502-stiane i gemini.js set retry:true for å utløyse dette.
         if (response.status === 502 && data?.retry === true && retriesLeft > 0) {
           return requestOnce(
             [

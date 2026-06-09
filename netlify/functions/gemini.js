@@ -310,11 +310,14 @@ export default async (request) => {
             }
           );
         }
+        // JSON kan ikkje parses i det heile – signaler retry så klienten prøver igjen
+        // automatisk i staden for å vise ein feilmelding til brukaren.
         return new Response(
           JSON.stringify({
             error:
               "Gemini returnerte ugyldig spørsmåls-JSON. Prøv igjen (appen ber om kompakt svar).",
             finishReason,
+            retry: true,
           }),
           {
             status: 502,
