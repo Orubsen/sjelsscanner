@@ -200,7 +200,7 @@ export default async (request) => {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const generationConfig = {
-      maxOutputTokens: body.max_tokens ?? 4096,
+      maxOutputTokens: body.max_tokens ?? 512,
       temperature: body.temperature ?? 0.7,
     };
     const useQuestionSchema = body.json_schema === "question";

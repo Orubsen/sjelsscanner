@@ -1258,14 +1258,14 @@ export default function App() {
       try {
         const step1 = await callClaude(buildStep1Messages(structuredAnswers, participant, locale), {
           structuredAnswers,
-          maxTokens: 4096,
+          maxTokens: 512,
           skipPrepare: true,
           participant,
         });
         setAnalyzingStatus(t("analyzing.step2"));
         let result = await callClaude(
           buildStep2Messages(structuredAnswers, step1, historyToUse, participant, locale),
-          { structuredAnswers, maxTokens: 8192, skipPrepare: true, participant }
+          { structuredAnswers, maxTokens: 512, skipPrepare: true, participant }
         );
         let analysisResult = normalizeAnalysis(result);
         if (!analysisResult.analysis) {
@@ -1278,7 +1278,7 @@ export default function App() {
                 content: apiT(locale, "api.analysisRetry"),
               },
             ],
-            { structuredAnswers, maxTokens: 8192, skipPrepare: true, participant }
+            { structuredAnswers, maxTokens: 512, skipPrepare: true, participant }
           );
           result = retry;
           analysisResult = normalizeAnalysis(retry);

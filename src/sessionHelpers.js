@@ -136,11 +136,11 @@ export function prepareMessagesForApi(messages, structuredAnswers, participant, 
 export function buildStep1Messages(structuredAnswers, participant, locale = "nb") {
   const p = buildParticipantContext(participant, locale);
   const step1 = getAnalysisStep1(locale);
-  // For analysis compression, allow more history (up to ~25) so step1 has good data for the report.
+  // Cap at 3 detailed answers to keep input tokens minimal and stay under 10s function timeout.
   return [
     {
       role: "user",
-      content: `${p ? `${p}\n\n` : ""}${step1}\n\n${structuredAnswersLabel(locale)}\n${formatStructuredAnswersForApi(structuredAnswers, locale, 25)}`,
+      content: `${p ? `${p}\n\n` : ""}${step1}\n\n${structuredAnswersLabel(locale)}\n${formatStructuredAnswersForApi(structuredAnswers, locale, 3)}`,
     },
   ];
 }
@@ -152,12 +152,12 @@ export function buildStep2Messages(structuredAnswers, step1Result, conversationT
     JSON.stringify(step1Result);
   const p = buildParticipantContext(participant, locale);
   const step2 = getAnalysisStep2(locale);
-  // For final report, allow more history (25) for quality.
+  // Cap at 3 detailed answers to keep input tokens minimal and stay under 10s function timeout.
   return [
     ...(conversationTail || []).slice(-4),
     {
       role: "user",
-      content: `${p ? `${p}\n\n` : ""}${step2}\n\nINTERN OPPSUMMERING:\n${summary}\n\n${structuredAnswersLabel(locale)}\n${formatStructuredAnswersForApi(structuredAnswers, locale, 25)}`,
+      content: `${p ? `${p}\n\n` : ""}${step2}\n\nINTERN OPPSUMMERING:\n${summary}\n\n${structuredAnswersLabel(locale)}\n${formatStructuredAnswersForApi(structuredAnswers, locale, 3)}`,
     },
   ];
 }
