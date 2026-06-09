@@ -1119,7 +1119,7 @@ export default function App() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gemini-3.5-flash",
+            model: "gemini-2.0-flash",
             max_tokens: maxTokens,
             json_mode: jsonMode,
             json_schema: jsonMode ? "question" : undefined,
@@ -1135,18 +1135,24 @@ export default function App() {
         // Server signaliserte at Gemini returnerte ufullstendig svar (t.d. manglande options
         // eller ugyldig JSON som ikkje kan parses). Prøv automatisk på nytt i staden for å
         // vise feil til brukaren. Begge 502-stiane i gemini.js set retry:true for å utløyse dette.
-        if (response.status === 502 && data?.retry === true && retriesLeft > 0) {
-          return requestOnce(
-            [
-              ...apiMessages,
-              {
-                role: "user",
-                content: apiT(locale, "api.invalidJsonRetry"),
-              },
-            ],
-            retriesLeft - 1,
-            "incomplete"
-          );
+        if (response.status === 502 && data?.retry === true) {
+          console.log("[DIAG] 502+retry signal mottatt. retriesLeft=", retriesLeft, "| error=", data?.error);
+          if (retriesLeft > 0) {
+            console.log("[DIAG] Starter retry. retriesLeft etter:", retriesLeft - 1);
+            return requestOnce(
+              [
+                ...apiMessages,
+                {
+                  role: "user",
+                  content: apiT(locale, "api.invalidJsonRetry"),
+                },
+              ],
+              retriesLeft - 1,
+              "incomplete"
+            );
+          } else {
+            console.log("[DIAG] Alle retries brukt opp – kaster feil til bruker.");
+          }
         }
 
         if (!response.ok) {
