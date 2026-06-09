@@ -1142,10 +1142,16 @@ export default function App() {
         const text = data.content?.find((b) => b.type === "text")?.text || "";
         if (!text.trim()) throw new Error("Empty response from analyst");
 
+        // [DIAG] Logger råteksten frå Gemini før parsing
+        console.log("[DIAG] RAW Gemini text (length=" + text.length + "):", text);
+
         const tryParse = () => parseLlmJson(text);
 
         try {
-          return tryParse();
+          const parsed = tryParse();
+          // [DIAG] Logger det parsede spørsmålsobjektet etter parsing
+          console.log("[DIAG] Parsed result:", JSON.stringify(parsed, null, 2));
+          return parsed;
         } catch (parseErr) {
           if (retriesLeft <= 0) throw parseErr;
           const isTruncated =
