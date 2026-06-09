@@ -322,6 +322,31 @@ export default async (request) => {
           }
         );
       }
+
+      // Validate that question responses always include all 4 options.
+      // Gemini sometimes ignores the responseSchema and returns {"type":"question"} without
+      // "options" – this guard rejects that and signals the client to retry automatically.
+      try {
+        const parsedCheck = JSON.parse(normalized);
+        if (
+          parsedCheck.type === "question" &&
+          (!Array.isArray(parsedCheck.options) || parsedCheck.options.length < 4)
+        ) {
+          console.error(
+            "gemini: spørsmål manglar options – sender retry-signal. options=",
+            parsedCheck.options,
+            "| raw (200 tegn):", t.slice(0, 200)
+          );
+          return new Response(
+            JSON.stringify({ error: "incomplete_response", retry: true, finishReason }),
+            {
+              status: 502,
+              headers: { "Content-Type": "application/json", ...corsHeaders() },
+            }
+          );
+        }
+      } catch { /* normalized er garantert gyldig JSON frå normalizeQuestionPayload */ }
+
       text = normalized;
     }
 

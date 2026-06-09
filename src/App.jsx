@@ -1132,6 +1132,22 @@ export default function App() {
 
         const data = await parseApiResponse(response);
 
+        // Server signaliserte at Gemini returnerte ufullstendig svar (t.d. manglande options).
+        // Prøv automatisk på nytt i staden for å sende feil til brukaren.
+        if (response.status === 502 && data?.retry === true && retriesLeft > 0) {
+          return requestOnce(
+            [
+              ...apiMessages,
+              {
+                role: "user",
+                content: apiT(locale, "api.invalidJsonRetry"),
+              },
+            ],
+            retriesLeft - 1,
+            "incomplete"
+          );
+        }
+
         if (!response.ok) {
           const msg =
             (typeof data?.error === "string" ? data.error : data?.error?.message) ||
