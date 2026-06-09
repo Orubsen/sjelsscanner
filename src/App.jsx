@@ -187,7 +187,6 @@ const introFieldStyle = {
   padding: "10px 12px",
   fontFamily: "var(--body)",
   fontSize: 13,
-  outline: "none",
 };
 
 function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialParticipant, isStarting }) {
@@ -430,7 +429,7 @@ function AskBox({ onAskOpinion, onRephrase, isLoading, opinion, onCloseOpinion, 
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") handleAsk(); if (e.key === "Escape") { setMode(null); onClearAskError?.(); } }}
           placeholder={t("question.askPlaceholder")}
-          style={{ width: "100%", boxSizing: "border-box", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--fg)", padding: "10px 12px", fontFamily: "var(--body)", fontSize: 13, outline: "none", marginBottom: 10 }}
+          style={{ width: "100%", boxSizing: "border-box", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--fg)", padding: "10px 12px", fontFamily: "var(--body)", fontSize: 13, marginBottom: 10 }}
         />
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <button onClick={() => { setMode(null); onClearAskError?.(); }} style={{ ...btnSmall, padding: "6px 14px", fontSize: 10 }}>{t("question.cancel")}</button>
