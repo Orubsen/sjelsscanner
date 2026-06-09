@@ -9,7 +9,7 @@ export const en = {
     contactEmail: "kontakt@xn--rubenrsten-5cb.no",
     websiteUrl: "https://rubenrøsten.no",
     websiteLabel: "rubenrøsten.no",
-    siteUrl: "https://sjelescanner.netlify.app",
+    siteUrl: "https://kjernekoden.netlify.app",
     rightsReserved: "All rights reserved.",
   },
   frameworks: {
