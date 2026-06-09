@@ -1,8 +1,8 @@
 // F1 – Modellnavn kan overstyres via Netlify-miljøvariabel GEMINI_MODEL.
-// Standard: "gemini-2.0-flash". Sett variabelen i Netlify-dashbordet
+// Standard: "gemini-2.5-flash". Sett variabelen i Netlify-dashbordet
 // under Site configuration → Environment variables dersom du vil bytte modell
 // uten å endre kode.
-const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 // ---------------------------------------------------------------------------
 // K3 – CORS låst til eget domene i produksjon

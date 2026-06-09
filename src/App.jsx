@@ -1119,7 +1119,7 @@ export default function App() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gemini-2.0-flash",
+            model: "gemini-2.5-flash",
             max_tokens: maxTokens,
             json_mode: jsonMode,
             json_schema: jsonMode ? "question" : undefined,
