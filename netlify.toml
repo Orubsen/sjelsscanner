@@ -5,6 +5,10 @@
 
 [functions]
   node_bundler = "esbuild"
+  # Analyse-kall til Gemini med full svarhistorikk tar 20-30s.
+  # Netlify Pro støtter opptil 26s – dette forhindrer at funksjonen
+  # blir drept før Gemini returnerer komplett analyse-JSON.
+  timeout = 26
 
 # Deltakerdata (navn, alder, e-post) lagres i Netlify Blobs via save-participant.
 
