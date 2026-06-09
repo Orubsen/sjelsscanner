@@ -33,15 +33,9 @@ export default async (request) => {
       lastQuestionCount: body.questionCount ?? entry.lastQuestionCount ?? null,
     };
 
+    // V1 – Atomic: skriv kun til deltakernes egen blob-nøkkel.
+    // Ingen _index-blob — eliminerer race condition.
     await store.setJSON(id, updated);
-
-    const index = (await store.get("_index", { type: "json" })) ?? [];
-    const nextIndex = index.map((row) =>
-      row?.id === id
-        ? { ...row, analysisCompleted: true, analysisCompletedAt: updated.analysisCompletedAt }
-        : row
-    );
-    await store.setJSON("_index", nextIndex);
 
     return jsonResponse({ ok: true, id }, 200, "POST, OPTIONS");
   } catch (error) {

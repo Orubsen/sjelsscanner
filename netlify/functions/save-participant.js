@@ -58,16 +58,9 @@ export default async (request) => {
     const store = getParticipantStore();
     const entry = { id, ...validated.record };
 
+    // V1 – Atomic: skriv kun til deltakernes egen blob-nøkkel.
+    // Ingen _index-blob — eliminerer race condition ved samtidige registreringer.
     await store.setJSON(id, entry);
-
-    const index = (await store.get("_index", { type: "json" })) ?? [];
-    index.push({
-      id,
-      createdAt: entry.createdAt,
-      email: entry.email,
-      analysisCompleted: false,
-    });
-    await store.setJSON("_index", index);
 
     return jsonResponse({ ok: true, id });
   } catch (error) {

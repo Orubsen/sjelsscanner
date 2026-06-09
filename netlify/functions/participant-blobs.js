@@ -152,16 +152,28 @@ export function checkAdminAuth(request) {
 // Deltaker-datalag (uendret)
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// V1 – Ingen _index-blob. Iterer blob-nøkler direkte for å unngå race condition.
+// ---------------------------------------------------------------------------
+
 export async function loadAllParticipants(store) {
-  const index = (await store.get("_index", { type: "json" })) ?? [];
-  const ordered = [...index].reverse();
+  // List alle nøkler i butikken. Filtrerer bort legacy "_index"-nøkkelen
+  // slik at eventuelle gamle data ikke forstyrrer.
+  const { blobs } = await store.list();
+  const keys = blobs
+    .map((b) => b.key)
+    .filter((k) => k !== "_index");
+
+  if (keys.length === 0) return [];
+
   const participants = await Promise.all(
-    ordered.map(async (row) => {
-      const id = row?.id || row;
-      if (!id || id === "_index") return null;
-      const entry = await store.get(String(id), { type: "json" });
-      return entry || { id: String(id) };
+    keys.map(async (key) => {
+      const entry = await store.get(key, { type: "json" });
+      return entry || null;
     })
   );
-  return participants.filter(Boolean);
+
+  return participants
+    .filter(Boolean)
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 }
