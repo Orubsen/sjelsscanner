@@ -282,13 +282,20 @@ export default async (request) => {
     // Strip markdown fences Gemini sometimes adds (applies to all response types).
     text = String(text).trim()
       .replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-    const _first = text.indexOf('{');
-    if (_first > 0) text = text.slice(_first);
-    const _last = text.lastIndexOf('}');
-    if (_last > 0 && _last < text.length - 1) text = text.slice(0, _last + 1);
+    {
+      const _first = text.indexOf('{');
+      if (_first > 0) text = text.slice(_first);
+      const _last = text.lastIndexOf('}');
+      if (_last >= 0 && _last < text.length - 1) text = text.slice(0, _last + 1);
+    }
 
     if (useQuestionSchema) {
-      let t = text;
+      // Re-strip locally to guarantee clean input regardless of global strip edge cases.
+      let t = String(text).trim();
+      const first = t.indexOf('{');
+      if (first > 0) t = t.slice(first);
+      const last = t.lastIndexOf('}');
+      if (last >= 0) t = t.slice(0, last + 1);
 
       // [DIAG] Logg finishReason og råtekstlengde rett før validering
       console.log('[DIAG] finishReason:', finishReason, 'rawLength:', t?.length);
