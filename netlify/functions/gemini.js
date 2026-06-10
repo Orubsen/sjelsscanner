@@ -379,11 +379,13 @@ export default async (request) => {
           const retryInstruction =
             "[CRITICAL ERROR / KRITISK FEIL: options missing. Return ONE valid JSON object — same question, same questionNumber — but NOW include EXACTLY 4 non-empty concrete answer strings in the \"options\" array. Example: {\"type\":\"question\",\"question\":\"...\",\"category\":\"...\",\"questionNumber\":8,\"options\":[\"A. ...\",\"B. ...\",\"C. ...\",\"D. ...\"],\"categories_covered\":[],\"missing_categories\":[],\"analysis_ready\":false,\"readiness_note\":\"\"}. JSON only, no other text.]";
 
-          // If Gemini signals analysis_ready OR the client has >= 15 answers (all categories
-          // covered), honour the intent by returning auto_analysis_trigger.
-          // Note: at Q15+, Gemini's truncated JSON often omits analysis_ready entirely —
-          // we rely on clientQuestionCount to detect this case reliably.
-          if (parsedCheck.analysis_ready === true || clientQuestionCount >= 15) {
+          // If the client has >= 15 answers, honour the intent by returning auto_analysis_trigger.
+          // We intentionally do NOT check parsedCheck.analysis_ready here: without thinking,
+          // Gemini sometimes sets analysis_ready:true at Q1-Q2 (insufficient data). Firing
+          // auto_analysis_trigger that early would skip all remaining questions.
+          // The "get analysis now" button already handles the analysis_ready:true signal from
+          // normal (4-option) question responses — no need to duplicate it here.
+          if (clientQuestionCount >= 15) {
             console.log("gemini: auto_analysis_trigger – analysis_ready=", parsedCheck.analysis_ready, "clientQuestionCount=", clientQuestionCount);
             return new Response(
               JSON.stringify({
