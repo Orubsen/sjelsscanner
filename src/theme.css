@@ -1,9 +1,14 @@
-/* -----------------------------------------------------------------------
- * Designsystem – dyp lilla corporate-scientific (IQVIA-inspirert).
- * Indigo aksent fra eksisterende system, gull-aksent fra Røsten-logoen.
- * ----------------------------------------------------------------------- */
+/* ============================================================
+   KJERNEKODEN — Design system tokens
+   Direction: deep-purple corporate-scientific (IQVIA-inspired),
+   indigo accent carried over from existing system, gold brand
+   accent lifted from the Røsten logo. Clinical & trustworthy.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap');
+
 :root {
-  /* Overflater — dyp violet-svart, lav kroma */
+  /* Surfaces — deep violet-black, low chroma */
   --bg: #0b081a;
   --bg-2: #0e0b21;
   --surface: #141029;
@@ -11,24 +16,21 @@
   --border: #251e45;
   --border-soft: rgba(129, 140, 248, 0.14);
 
-  /* Tekst */
+  /* Text */
   --fg: #e6e4f2;
   --fg-soft: #aaa6c8;
   --dim: #5d5884;
   --dim-2: #353055;
 
-  /* Aksent — eksisterende indigo */
+  /* Accent — indigo */
   --accent: #818cf8;
   --accent-bright: #a5b0ff;
   --accent-alpha-08: rgba(129, 140, 248, 0.08);
   --accent-alpha-10: rgba(129, 140, 248, 0.10);
   --accent-alpha-15: rgba(129, 140, 248, 0.15);
   --accent-alpha-25: rgba(129, 140, 248, 0.25);
-  /* Legacy alias */
-  --accent-alpha: rgba(129, 140, 248, 0.15);
-  --accent-dim: rgba(129, 140, 248, 0.45);
 
-  /* Brand gull — fra Røsten-logoen. Brukes sparsomt. */
+  /* Brand gold — from the Røsten logo. Sparingly. */
   --gold: #c5a368;
   --gold-soft: rgba(197, 163, 104, 0.55);
   --gold-alpha-12: rgba(197, 163, 104, 0.12);
@@ -38,21 +40,20 @@
   --error-soft: #fecaca;
   --ok: #6ee7b7;
 
-  /* Kriselinje */
+  /* Crisis */
   --crisis: #fca5a5;
   --crisis-border: rgba(248, 113, 113, 0.35);
   --crisis-bg: rgba(248, 113, 113, 0.06);
 
-  /* Typografi */
+  /* Type */
   --mono: 'IBM Plex Mono', monospace;
   --body: 'Crimson Pro', serif;
   --display: 'Cormorant Garamond', 'Crimson Pro', serif;
 
-  /* Responsiv horisontal luft */
+  /* Responsive horizontal padding */
   --pad-x: clamp(18px, 5vw, 32px);
 }
 
-/* Base-stiler som gjeld alle sider */
 *, *::before, *::after {
   margin: 0;
   padding: 0;
@@ -67,23 +68,37 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-input, textarea, select {
-  font-family: var(--body);
-}
-
-a {
-  color: var(--accent);
-}
-
+a { color: var(--accent); }
 button { font-family: var(--mono); }
+input, textarea, select { font-family: var(--body); }
 
 ::selection { background: var(--accent-alpha-25); }
 
-/* -----------------------------------------------------------------------
- * KK – Redesign utility-klasser
- * ----------------------------------------------------------------------- */
+/* Typewriter cursor */
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes kk-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.cursor { animation: blink 1s infinite; }
+.kk-cursor { animation: kk-blink 1s infinite; color: var(--accent); }
 
-/* Mono-etikett */
+/* Soft fade-up used across screens.
+   Visible end-state is the BASE style; the animation only applies once JS adds
+   .kk-anim-ready to <html> (first rAF after load). If the animation never
+   starts (print, export, throttled iframe), content stays fully visible. */
+.kk-rise { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  .kk-anim-ready .kk-rise { animation: kk-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+  .kk-anim-ready .kk-rise-1 { animation-delay: 0.08s; }
+  .kk-anim-ready .kk-rise-2 { animation-delay: 0.18s; }
+  .kk-anim-ready .kk-rise-3 { animation-delay: 0.30s; }
+  .kk-anim-ready .kk-rise-4 { animation-delay: 0.44s; }
+}
+@keyframes kk-rise {
+  /* Transform-only: a stalled animation can shift content, never hide it */
+  from { transform: translateY(14px); }
+  to   { transform: translateY(0); }
+}
+
+/* Mono label */
 .kk-label {
   font-family: var(--mono);
   font-size: 11px;
@@ -92,7 +107,7 @@ button { font-family: var(--mono); }
   text-transform: uppercase;
 }
 
-/* Primær CTA */
+/* Primary CTA */
 .kk-btn-primary {
   display: inline-flex;
   align-items: center;
@@ -116,7 +131,7 @@ button { font-family: var(--mono); }
 }
 .kk-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 
-/* Ghost-knapp */
+/* Ghost button */
 .kk-btn-ghost {
   display: inline-flex;
   align-items: center;
@@ -138,7 +153,7 @@ button { font-family: var(--mono); }
   background: var(--accent-alpha-08);
 }
 
-/* Svaralternativ-knapper */
+/* Option (answer) buttons */
 .kk-option {
   display: flex;
   align-items: baseline;
@@ -168,7 +183,7 @@ button { font-family: var(--mono); }
   flex-shrink: 0;
 }
 
-/* Inndatafelt */
+/* Fields */
 .kk-field {
   width: 100%;
   background: var(--surface);
@@ -181,14 +196,18 @@ button { font-family: var(--mono); }
 .kk-field::placeholder { color: var(--dim); }
 .kk-field:focus { outline: none; border-color: var(--accent); }
 
-/* Kort */
+/* Focus visibility */
+*:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+*:focus:not(:focus-visible) { outline: none; }
+
+/* Card */
 .kk-card {
   background: var(--surface);
   border: 1px solid var(--border);
   padding: 28px;
 }
 
-/* Hårlinje-skillelinje */
+/* Hairline divider */
 .kk-divider {
   display: flex;
   align-items: center;
@@ -201,21 +220,14 @@ button { font-family: var(--mono); }
   background: var(--border);
 }
 
-/* Fade-opp inngangsanimasjon — synlig er GRUNNSTIL, animasjonen er tillegg */
-.kk-rise { opacity: 1; }
-@media (prefers-reduced-motion: no-preference) {
-  .kk-anim-ready .kk-rise { animation: kk-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
-  .kk-anim-ready .kk-rise-1 { animation-delay: 0.08s; }
-  .kk-anim-ready .kk-rise-2 { animation-delay: 0.18s; }
-  .kk-anim-ready .kk-rise-3 { animation-delay: 0.30s; }
-  .kk-anim-ready .kk-rise-4 { animation-delay: 0.44s; }
-}
-@keyframes kk-rise {
-  from { transform: translateY(14px); }
-  to   { transform: translateY(0); }
-}
+details summary { list-style: none; cursor: pointer; }
+details summary::-webkit-details-marker { display: none; }
+details summary::marker { content: ""; }
 
-/* Skimrende gradient-tekst */
+/* -----------------------------------------------------------------
+   Shimmer text — gradient-tekst er alltid synlig, også om
+   animasjonen aldri starter (0%-tilstand viser full gradient).
+   ----------------------------------------------------------------- */
 .kk-shimmer, .kk-shimmer-accent, .kk-shimmer-gold {
   background-size: 220% 100%;
   background-position: 0% 0;
@@ -245,218 +257,7 @@ button { font-family: var(--mono); }
   100% { background-position: -120% 0; }
 }
 
-/* Typewriter-cursor */
-@keyframes kk-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-.kk-cursor { animation: kk-blink 1s infinite; color: var(--accent); }
-
-/* Legacy typewriter-cursor (brukes i eksisterende App.jsx-skjermer) */
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-.cursor { animation: blink 1s infinite; }
-
-/* -----------------------------------------------------------------------
- * F4 – Zoom-skalering på desktop: val og avveiing.
- *
- * Appen er designa for ein mobil tekstbreidd (~360–480 px). På desktop ville
- * den dukka opp som ei smal stripe utan skalering. I staden for å skrive om
- * heile layouten til responsiv grid bruker vi CSS `zoom`-eigenskapen:
- *
- *   zoom: 1.75 ved ≥900 px  →  vert visuelt ca. 150 % utan nettleser-zoom
- *   zoom: 1.9  ved ≥1200 px
- *   zoom: 2.0  ved ≥1536 px
- *
- * Fordel: heile brukargrensesnittet, inkl. modal-ar, popups og fixed-element,
- * skalerer konsekvent — ingen oppstykkingsarbeid per komponent.
- *
- * Ulempe: `zoom` er ikkje del av CSS-standarden (W3C), men er støtta i alle
- * moderne nettlesarar (Chrome, Edge, Safari, Firefox 126+). Som fallback for
- * eldre Firefox bruker vi `transform: scale()` via @supports-blokka nedanfor.
- *
- * Konsekvens for utvikling: breakpoint-verdiar i media queries refererer til
- * uzooma pikslar. Ein 900px-skjerm med zoom:1.75 oppfører seg som ein
- * ~514px-visningsport for innhaldet.
- * ----------------------------------------------------------------------- */
-
-@media (min-width: 900px) {
-  :root {
-    --layout-intro: 40rem;
-    --layout-narrow: 36rem;
-    --layout-main: 52rem;
-    --layout-report: 56rem;
-  }
-
-  .app-root {
-    zoom: 1.75;
-  }
-
-  .layout-shell--intro {
-    max-width: var(--layout-intro) !important;
-    padding-left: 2.5rem !important;
-    padding-right: 2.5rem !important;
-  }
-
-  .layout-shell--question {
-    max-width: var(--layout-main) !important;
-    padding-left: 2.5rem !important;
-    padding-right: 2.5rem !important;
-  }
-
-  .layout-shell--report {
-    max-width: var(--layout-report) !important;
-    padding-left: 2.5rem !important;
-    padding-right: 2.5rem !important;
-  }
-
-  .layout-narrow {
-    max-width: var(--layout-narrow) !important;
-  }
-
-  .type-display-title {
-    font-size: clamp(2.75rem, 5.5vw, 5rem) !important;
-  }
-
-  .type-question-text {
-    font-size: clamp(1.2rem, 2vw, 1.5rem) !important;
-    line-height: 1.75 !important;
-  }
-
-  .type-option-btn {
-    font-size: 1.0625rem !important;
-    padding: 1rem 1.25rem !important;
-    line-height: 1.55 !important;
-  }
-
-  .type-intro-field {
-    font-size: 1rem !important;
-    padding: 0.75rem 0.875rem !important;
-  }
-
-  .type-mono-xs {
-    font-size: 0.75rem !important;
-  }
-
-  .type-mono-sm {
-    font-size: 0.8125rem !important;
-  }
-
-  .type-body-sm {
-    font-size: 0.9375rem !important;
-  }
-
-  .brand-footer-text {
-    font-size: 0.75rem !important;
-  }
-}
-
-@media (min-width: 1200px) {
-  :root {
-    --layout-intro: 44rem;
-    --layout-narrow: 40rem;
-    --layout-main: 56rem;
-    --layout-report: 60rem;
-  }
-
-  .app-root {
-    zoom: 1.9;
-  }
-
-  .type-display-title {
-    font-size: clamp(3rem, 5vw, 5.5rem) !important;
-  }
-
-  .type-question-text {
-    font-size: clamp(1.3rem, 1.8vw, 1.65rem) !important;
-  }
-
-  .type-option-btn {
-    font-size: 1.125rem !important;
-    padding: 1.1rem 1.35rem !important;
-  }
-}
-
-@media (min-width: 1536px) {
-  .app-root {
-    zoom: 2;
-  }
-}
-
-/* Firefox eldre versjoner uten zoom */
-@supports not (zoom: 1) {
-  @media (min-width: 900px) {
-    .app-root {
-      transform: scale(1.75);
-      transform-origin: top center;
-      width: 57.143%;
-      margin-left: auto;
-      margin-right: auto;
-    }
-  }
-  @media (min-width: 1200px) {
-    .app-root {
-      transform: scale(1.9);
-      width: 52.632%;
-    }
-  }
-  @media (min-width: 1536px) {
-    .app-root {
-      transform: scale(2);
-      width: 50%;
-    }
-  }
-}
-
-/* Sammenleggbare info-bokser (details/summary) */
-.app-root details summary {
-  list-style: none;
-}
-
-.app-root details summary::-webkit-details-marker {
-  display: none;
-}
-
-.app-root details summary::marker {
-  content: "";
-}
-
-/* -----------------------------------------------------------------------
- * V5 – Synlig :focus-visible på alle interaktive elementer
- * Tastaturnavigasjon: konsistent fokuslinje i designsystemets fargeprofil.
- * ----------------------------------------------------------------------- */
-
-/* 1. Fjern standard focus-ring ved museklikk (ikke ved tastaturnavigasjon) */
-.app-root *:focus:not(:focus-visible) {
-  outline: none;
-}
-
-/* 2. Konsekvent fokuslinje ved tastaturnavigasjon for alle interaktive elementer */
-.app-root *:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* 3. Svaralternativ-knapper: forsterket focus-state som speiler hover */
-.app-root .type-option-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  background: rgba(129, 140, 248, 0.08);
-  border-color: var(--accent) !important;
-}
-
-/* 4. Tekstfelter og textarea: ingen gap, fokusringen dekker kanten */
-.app-root input:focus-visible,
-.app-root textarea:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 0;
-  border-color: var(--accent) !important;
-}
-
-/* 5. Checkbox: beholder accentColor, legger til synlig ring rundt */
-.app-root input[type="checkbox"]:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* 6. details/summary: synlig focus på trekkspillknapper */
-.app-root details summary:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); }

@@ -28,8 +28,8 @@ import {
   getSavedSessionSummary,
   parseSectionBlocks,
 } from "./sessionHelpers.js";
-import { BrandWatermark, BrandHeader, BrandFooter, IntroBrandMark } from "./BrandChrome.jsx";
-import { Landing } from "./Landing.jsx";
+import { BrandHeader, BrandFooter, IntroBrandMark, ParticleField } from "./BrandChrome.jsx";
+import Landing from "./Landing.jsx";
 import {
   EMPTY_PARTICIPANT,
   validateParticipant,
@@ -42,6 +42,7 @@ import { computeSessionProgressPercent } from "./sessionProgress.js";
 import {
   EstimatedTimeNote,
   CrisisHelpBox,
+  CrisisBox,
   ContactRosten,
   ConsentDetails,
 } from "./SiteExtras.jsx";
@@ -192,198 +193,211 @@ const introFieldStyle = {
 };
 
 function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialParticipant, isStarting }) {
-  const { t, brand, locale, frameworkList } = useI18n();
-  const [glitch, setGlitch] = useState(false);
+  const { t, locale } = useI18n();
   const [name, setName] = useState(initialParticipant?.name || "");
-  const [age, setAge] = useState(
-    initialParticipant?.age != null ? String(initialParticipant.age) : ""
-  );
+  const [age, setAge] = useState(initialParticipant?.age != null ? String(initialParticipant.age) : "");
   const [email, setEmail] = useState(initialParticipant?.email || "");
   const [consent, setConsent] = useState(Boolean(initialParticipant?.id));
   const [touched, setTouched] = useState(false);
+  const [google, setGoogle] = useState(null); // null | "connecting" | {name, email}
 
-  const validation = validateParticipant({ name, age, email }, locale);
+  const viaGoogle = google && google !== "connecting";
+  const effName = viaGoogle ? google.name : name;
+  const effEmail = viaGoogle ? google.email : email;
+  const validation = validateParticipant({ name: effName, age, email: effEmail }, locale);
   const canStart = validation.valid && consent;
 
-  useEffect(() => {
-    const t = setInterval(() => { setGlitch(true); setTimeout(() => setGlitch(false), 500); }, 4000);
-    return () => clearInterval(t);
-  }, []);
+  const connectGoogle = () => {
+    setGoogle("connecting");
+    setTimeout(() => setGoogle({ name: "Ruben Røsten", email: "ruben@eksempel.no" }), 1100);
+  };
 
   const handleStart = () => {
     setTouched(true);
-    if (!canStart) return;
+    if (!canStart || isStarting) return;
     onStart(validation.normalized, consent);
   };
 
   return (
-    <div className="layout-shell layout-shell--intro" style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: 32, textAlign: "center", width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
-      <div style={{ position: "absolute", top: 16, left: 16, zIndex: 10, pointerEvents: "auto" }}>
+    <section style={{
+      position: "relative", zIndex: 1, minHeight: "100vh",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+      maxWidth: 560, margin: "0 auto", padding: "110px var(--pad-x) 80px",
+    }}>
+      <div style={{ position: "absolute", top: 72, right: "var(--pad-x)", zIndex: 10 }}>
         <LanguageSwitcher />
       </div>
       <IntroBrandMark />
-      <div className="type-mono-sm" style={{ marginBottom: 16, fontSize: 11, letterSpacing: 4, color: "var(--accent-dim)", fontFamily: "var(--mono)" }}>
-        {t("intro.version")}
-      </div>
-      <h1 className="type-display-title" style={{ fontSize: "clamp(2rem, 6vw, 4rem)", fontFamily: "var(--display)", fontWeight: 900, letterSpacing: -2, lineHeight: 1, marginBottom: 8, color: "var(--fg)" }}>
-        <GlitchText text={t("intro.titleLine1")} active={glitch} /><br />
-        <span style={{ color: "var(--accent)" }}>
-          <GlitchText text={t("intro.titleLine2")} active={glitch} />
-        </span>
-      </h1>
-      <div style={{ width: 60, height: 1, background: "var(--accent)", margin: "24px auto", boxShadow: "0 0 10px var(--accent)" }} />
-      <p className="layout-narrow type-body-sm" style={{ maxWidth: 480, width: "100%", color: "var(--dim)", fontSize: 13, lineHeight: 1.8, marginBottom: 8, fontFamily: "var(--mono)" }}>
-        {brand.tagline}<br />
-        {t("brand.developedBy", { company: brand.company, product: brand.product })}
-      </p>
-      <p className="layout-narrow type-mono-sm" style={{ maxWidth: 480, width: "100%", color: "var(--dim-2)", fontSize: 11, lineHeight: 1.8, marginBottom: 16, fontFamily: "var(--mono)" }}>
+      <span className="kk-label kk-rise kk-rise-1" style={{ color: "var(--accent)", marginBottom: 14 }}>
+        {t("intro.beforeStart")}
+      </span>
+      <p className="kk-rise kk-rise-1" style={{
+        fontFamily: "var(--body)", fontSize: 18.5, lineHeight: 1.6,
+        color: "var(--fg-soft)", marginBottom: 34, textWrap: "pretty",
+      }}>
         {t("intro.hint")}
       </p>
 
-      <div className="layout-narrow" style={{ maxWidth: 420, width: "100%", marginBottom: 32, textAlign: "left" }}>
-        <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--accent)", fontFamily: "var(--mono)", marginBottom: 12 }}>
-          {t("intro.beforeStart")}
-        </div>
-        <label style={{ display: "block", fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)", letterSpacing: 1, marginBottom: 6 }}>
-          {t("intro.name")}
-        </label>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={() => setTouched(true)}
-          placeholder={t("intro.namePlaceholder")}
-          className="type-intro-field"
-          style={{ ...introFieldStyle, marginBottom: touched && validation.errors.name ? 4 : 12 }}
-        />
-        {touched && validation.errors.name && (
-          <p style={{ fontSize: 10, color: "#f87171", fontFamily: "var(--mono)", marginBottom: 12 }}>{validation.errors.name}</p>
-        )}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 12 }}>
-          <div>
-            <label style={{ display: "block", fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)", letterSpacing: 1, marginBottom: 6 }}>
-              {t("intro.age")}
-            </label>
-            <input
-              type="number"
-              min={MIN_PARTICIPANT_AGE}
-              max={MAX_PARTICIPANT_AGE}
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              onBlur={() => setTouched(true)}
-              placeholder={`${MIN_PARTICIPANT_AGE}–${MAX_PARTICIPANT_AGE}`}
-              className="type-intro-field"
-              style={{ ...introFieldStyle, marginBottom: touched && validation.errors.age ? 4 : 0 }}
-            />
-            {touched && validation.errors.age && (
-              <p style={{ fontSize: 10, color: "#f87171", fontFamily: "var(--mono)", marginTop: 4 }}>{validation.errors.age}</p>
-            )}
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)", letterSpacing: 1, marginBottom: 6 }}>
-              {t("intro.email")}
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onBlur={() => setTouched(true)}
-              placeholder={t("intro.emailPlaceholder")}
-              className="type-intro-field"
-              style={{ ...introFieldStyle, marginBottom: touched && validation.errors.email ? 4 : 0 }}
-            />
-            {touched && validation.errors.email && (
-              <p style={{ fontSize: 10, color: "#f87171", fontFamily: "var(--mono)", marginTop: 4 }}>{validation.errors.email}</p>
-            )}
-          </div>
-        </div>
-        <label
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 10,
-            marginTop: 16,
-            cursor: "pointer",
-            fontSize: 11,
-            color: "var(--dim)",
-            fontFamily: "var(--mono)",
-            lineHeight: 1.6,
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={consent}
-            onChange={(e) => setConsent(e.target.checked)}
-            style={{ marginTop: 3, accentColor: "var(--accent)" }}
-          />
-          <ConsentDetails />
-        </label>
-        {touched && !consent && (
-          <p style={{ fontSize: 10, color: "#f87171", fontFamily: "var(--mono)", marginTop: 8 }}>
-            {t("consent.required")}
-          </p>
-        )}
-      </div>
-
-      <details style={{ maxWidth: 480, width: "100%", marginBottom: 32, textAlign: "left" }}>
-        <summary style={{ fontSize: 10, letterSpacing: 2, color: "var(--dim)", fontFamily: "var(--mono)", cursor: "pointer" }}>
-          {t("intro.questionsFromTitle")}
-        </summary>
-        <p style={{ marginTop: 12, fontSize: 11, color: "var(--dim-2)", fontFamily: "var(--mono)", lineHeight: 1.7 }}>
-          {t("intro.questionsFromBody", { minQ: MIN_QUESTIONS_SUGGEST, maxQ: MAX_QUESTIONS })}
-        </p>
-      </details>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, maxWidth: 480, width: "100%", marginBottom: 48 }}>
-        {(frameworkList || []).map(f => (
-          <div key={f} style={{ padding: "8px 4px", border: "1px solid var(--border)", fontSize: 10, color: "var(--dim)", letterSpacing: 1, textAlign: "center", fontFamily: "var(--mono)" }}>
-            {f.toUpperCase()}
-          </div>
-        ))}
-      </div>
-
       {savedSession && (
-        <div style={{ maxWidth: 480, width: "100%", marginBottom: 24, padding: 16, border: "1px solid var(--accent-dim)", background: "rgba(129,140,248,0.05)" }}>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--accent)", fontFamily: "var(--mono)", marginBottom: 8 }}>
-            {t("intro.savedSessionTitle")}
-          </div>
-          <p style={{ fontSize: 12, color: "var(--fg-soft)", fontFamily: "var(--mono)", marginBottom: 12, lineHeight: 1.6 }}>
+        <div className="kk-rise kk-rise-2" style={{
+          border: "1px solid var(--border-soft)", background: "var(--accent-alpha-08)",
+          padding: "16px 18px", marginBottom: 28, display: "flex", flexDirection: "column", gap: 10,
+        }}>
+          <span className="kk-label" style={{ color: "var(--accent)" }}>{t("intro.savedSessionTitle")}</span>
+          <p style={{ fontSize: 16, color: "var(--fg-soft)", fontFamily: "var(--body)", lineHeight: 1.5 }}>
             {t("intro.savedSessionBody", {
               n: savedSession.questionNumber,
               covered: savedSession.covered,
               total: savedSession.totalCategories,
             })}
           </p>
-          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-            <button onClick={onResume} style={{ ...btnSmall, borderColor: "var(--accent)", color: "var(--accent)" }}>{t("intro.continue")}</button>
-            <button onClick={onDiscard} style={btnSmall}>{t("intro.startFresh")}</button>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button className="kk-btn-primary" style={{ padding: "10px 22px", fontSize: 12 }} onClick={onResume}>
+              {t("intro.continue")}
+            </button>
+            <button className="kk-btn-ghost" style={{ padding: "10px 18px", fontSize: 11 }} onClick={onDiscard}>
+              {t("intro.startFresh")}
+            </button>
           </div>
         </div>
       )}
 
-      <button
-        onClick={handleStart}
-        disabled={!canStart || isStarting}
-        style={{
-        background: "transparent", border: "1px solid var(--accent)", color: "var(--accent)",
-        padding: "14px 40px", fontSize: 12, letterSpacing: 3, cursor: canStart && !isStarting ? "pointer" : "not-allowed",
-        fontFamily: "var(--mono)", transition: "all 0.2s", textTransform: "uppercase",
-        opacity: canStart && !isStarting ? 1 : 0.45,
-      }}
-        onMouseEnter={e => { if (!canStart || isStarting) return; e.target.style.background = "var(--accent)"; e.target.style.color = "#000"; }}
-        onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = "var(--accent)"; }}
-      >
-        {isStarting ? t("intro.saving") : savedSession ? t("intro.newAnalysis") : t("intro.start")}
-      </button>
+      <div className="kk-rise kk-rise-2" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        {!viaGoogle ? (
+          <>
+            <button
+              className="kk-btn-ghost"
+              style={{ justifyContent: "center", gap: 12, padding: "14px 20px", color: "var(--fg)" }}
+              onClick={connectGoogle}
+              disabled={google === "connecting"}
+            >
+              <span aria-hidden="true" style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                width: 20, height: 20, borderRadius: "50%", border: "1px solid var(--fg-soft)",
+                fontFamily: "var(--body)", fontSize: 13, fontWeight: 600,
+              }}>G</span>
+              {google === "connecting" ? "KOBLER TIL GOOGLE…" : "FORTSETT MED GOOGLE"}
+            </button>
+            <div className="kk-divider">
+              <span className="kk-label">ELLER</span>
+            </div>
+            <label style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <span className="kk-label">{t("intro.name")}</span>
+              <input
+                className="kk-field"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onBlur={() => setTouched(true)}
+                placeholder={t("intro.namePlaceholder")}
+              />
+              {touched && validation.errors?.name && (
+                <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--error)" }}>
+                  {validation.errors.name}
+                </span>
+              )}
+            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 18 }}>
+              <label style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <span className="kk-label">{t("intro.age")}</span>
+                <input
+                  className="kk-field"
+                  type="number"
+                  min={MIN_PARTICIPANT_AGE}
+                  max={MAX_PARTICIPANT_AGE}
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  onBlur={() => setTouched(true)}
+                  placeholder="—"
+                />
+                {touched && validation.errors?.age && (
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--error)" }}>
+                    {validation.errors.age}
+                  </span>
+                )}
+              </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <span className="kk-label">{t("intro.email")}</span>
+                <input
+                  className="kk-field"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => setTouched(true)}
+                  placeholder={t("intro.emailPlaceholder")}
+                />
+                {touched && validation.errors?.email && (
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--error)" }}>
+                    {validation.errors.email}
+                  </span>
+                )}
+              </label>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 14,
+              border: "1px solid var(--border-soft)", background: "var(--accent-alpha-08)", padding: "14px 18px",
+            }}>
+              <span aria-hidden="true" style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                width: 34, height: 34, borderRadius: "50%", background: "var(--surface-2)",
+                border: "1px solid var(--border)", fontFamily: "var(--body)", fontSize: 16, fontWeight: 600,
+              }}>{google.name[0]}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                <span style={{ fontSize: 16.5, color: "var(--fg)" }}>{google.name}</span>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.06em", color: "var(--dim)" }}>
+                  {google.email} · PÅLOGGET VIA GOOGLE
+                </span>
+              </div>
+              <button onClick={() => setGoogle(null)} style={{
+                marginLeft: "auto", background: "none", border: "none", cursor: "pointer",
+                fontFamily: "var(--mono)", fontSize: 10.5, letterSpacing: "0.14em", color: "var(--accent)",
+              }}>BYTT</button>
+            </div>
+            <label style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 140 }}>
+              <span className="kk-label">{t("intro.age")}</span>
+              <input
+                className="kk-field"
+                type="number"
+                min={MIN_PARTICIPANT_AGE}
+                max={MAX_PARTICIPANT_AGE}
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                placeholder="—"
+              />
+            </label>
+          </>
+        )}
 
-      <div className="layout-narrow" style={{ maxWidth: 480, width: "100%", marginTop: 24 }}>
-        <EstimatedTimeNote />
-        <CrisisHelpBox compact />
-        <ContactRosten style={{ marginBottom: 12 }} />
-        <p style={{ fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)", letterSpacing: 1, lineHeight: 1.6 }}>
-          {t("intro.disclaimer", { maxQ: MAX_QUESTIONS })}
+        <label style={{ display: "flex", gap: 12, alignItems: "flex-start", cursor: "pointer", marginTop: 4 }}>
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+            style={{ accentColor: "var(--accent)", marginTop: 4, width: 16, height: 16 }}
+          />
+          <span style={{ fontSize: 16, lineHeight: 1.5, color: "var(--fg-soft)" }}>
+            <ConsentDetails />
+          </span>
+        </label>
+        {touched && !consent && (
+          <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--error)" }}>
+            {t("consent.required")}
+          </p>
+        )}
+
+        <div style={{ display: "flex", gap: 14, marginTop: 14, flexWrap: "wrap" }}>
+          <button className="kk-btn-primary" onClick={handleStart} disabled={isStarting}>
+            {isStarting ? t("intro.saving") : savedSession ? t("intro.newAnalysis") : t("intro.start")}&ensp;▸
+          </button>
+        </div>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 10.5, letterSpacing: "0.08em", color: "var(--dim)", marginTop: 8 }}>
+          ⚠ {t("intro.disclaimer", { maxQ: MAX_QUESTIONS })}
         </p>
+        <div style={{ marginTop: 24 }}><CrisisBox /></div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -511,27 +525,37 @@ function QuestionScreen({
   };
 
   return (
-    <div className="layout-shell layout-shell--question" style={{ maxWidth: 680, margin: "0 auto", padding: "32px 24px", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", width: "100%", boxSizing: "border-box" }}>
+    <section style={{
+      position: "relative", zIndex: 1, minHeight: "100vh",
+      maxWidth: 720, margin: "0 auto", padding: "110px var(--pad-x) 80px",
+      display: "flex", flexDirection: "column", justifyContent: "center",
+    }}>
       <div style={{ marginBottom: 16 }}>
         <LanguageSwitcher compact />
       </div>
       <ProgressBar current={questionNumber} maxQuestions={maxQuestions} coveredCategoryIds={coveredCategoryIds} />
-      <CrisisHelpBox compact style={{ marginBottom: 20 }} />
       <CategoryProgress coveredCategoryIds={coveredCategoryIds} analysisReady={analysisReady} readinessNote={readinessNote} />
 
       <div style={{ marginBottom: 28 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-          <div style={{ fontSize: 10, letterSpacing: 3, color: "var(--accent)", fontFamily: "var(--mono)", padding: "3px 8px", border: "1px solid var(--accent-dim)" }}>
-            {category ? category.toUpperCase() : t("question.categoryFallback")}
-          </div>
-          <div style={{ fontSize: 10, color: "var(--dim-2)", fontFamily: "var(--mono)", letterSpacing: 2 }}>
-            {t("question.questionShort")} {questionNumber}
-          </div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 16, marginBottom: 18, flexWrap: "wrap" }}>
+          <span style={{
+            fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.18em",
+            color: "var(--bg)", background: "var(--accent)", padding: "4px 10px", fontWeight: 600,
+          }}>
+            {t("question.questionShort")} {String(questionNumber).padStart(2, "0")}
+          </span>
+          {category && (
+            <span className="kk-label" style={{ color: "var(--gold)" }}>{category}</span>
+          )}
         </div>
 
-        <div className="type-question-text" style={{ fontSize: "clamp(15px, 2.5vw, 18px)", lineHeight: 1.7, color: "var(--fg-soft)", fontFamily: "var(--body)", minHeight: 60 }}>
+        <h2 style={{
+          fontFamily: "var(--display)", fontStyle: "italic", fontWeight: 500,
+          fontSize: "clamp(22px, 3.5vw, 30px)", lineHeight: 1.45,
+          marginBottom: 34, textWrap: "pretty", minHeight: "3.6em", color: "var(--fg)",
+        }}>
           {isLoading && !question ? (
-            <span style={{ color: "var(--accent)", fontFamily: "var(--mono)", fontSize: 13, letterSpacing: 0.5 }}>
+            <span style={{ color: "var(--accent)", fontFamily: "var(--mono)", fontSize: 14, letterSpacing: 0.5, fontStyle: "normal" }}>
               {processingLabel}
             </span>
           ) : skipTypewriter ? (
@@ -539,90 +563,61 @@ function QuestionScreen({
           ) : (
             <Typewriter text={question} speed={16} onDone={() => setQuestionReady(true)} />
           )}
-        </div>
+        </h2>
         {isLoading && question && (
-          <p
-            style={{
-              marginTop: 12,
-              fontFamily: "var(--mono)",
-              fontSize: 12,
-              color: "var(--accent)",
-              letterSpacing: 0.5,
-              lineHeight: 1.6,
-              animation: "blink 1.2s infinite",
-            }}
-          >
+          <p style={{ marginTop: 12, fontFamily: "var(--mono)", fontSize: 12, color: "var(--accent)", letterSpacing: 0.5, lineHeight: 1.6, animation: "blink 1.2s infinite" }}>
             {processingLabel}
           </p>
         )}
         {question && !questionReady && !isLoading && (
-          <button type="button" onClick={() => { setSkipTypewriter(true); setQuestionReady(true); }} style={{ ...btnSmall, marginTop: 8, fontSize: 10 }}>
+          <button type="button" onClick={() => { setSkipTypewriter(true); setQuestionReady(true); }} className="kk-btn-ghost" style={{ padding: "6px 14px", fontSize: 10, marginTop: 8 }}>
             {t("question.showFull")}
           </button>
         )}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, opacity: questionReady && !isLoading ? 1 : 0.4, transition: "opacity 0.3s" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, opacity: questionReady && !isLoading ? 1 : 0.4, transition: "opacity 0.3s" }}>
         {options && options.map((opt, i) => (
           <button
             key={i}
+            className="kk-option"
             onClick={() => questionReady && !isLoading && onAnswer(opt)}
             disabled={!questionReady || isLoading}
-            onMouseEnter={() => setHoveredOption(i)}
-            onMouseLeave={() => setHoveredOption(null)}
-            className="type-option-btn"
-            style={{
-              textAlign: "left",
-              background: hoveredOption === i ? "rgba(129,140,248,0.08)" : "var(--surface)",
-              border: hoveredOption === i ? "1px solid var(--accent)" : "1px solid var(--border)",
-              color: "var(--fg-soft)", padding: "14px 16px",
-              fontFamily: "var(--body)", fontSize: 14, lineHeight: 1.5,
-              cursor: questionReady && !isLoading ? "pointer" : "default",
-              transition: "all 0.15s", display: "flex", alignItems: "flex-start", gap: 12,
-            }}
           >
-            <span style={{
-              fontSize: 10, fontFamily: "var(--mono)",
-              color: hoveredOption === i ? "var(--accent)" : "var(--dim-2)",
-              letterSpacing: 1, marginTop: 3, minWidth: 16, transition: "color 0.15s"
-            }}>
-              {String.fromCharCode(65 + i)}
-            </span>
-            <span style={{ flex: 1 }}>{opt}</span>
+            <span className="kk-option-key">{"ABCD"[i]} —</span>
+            <span>{opt}</span>
           </button>
         ))}
         <button
           type="button"
+          className="kk-option"
           onClick={() => questionReady && !isLoading && setCustomMode(true)}
           disabled={!questionReady || isLoading}
-          style={{
-            textAlign: "left",
-            background: "var(--surface)",
-            border: "1px dashed var(--border)",
-            color: "var(--dim)",
-            padding: "14px 16px",
-            fontFamily: "var(--mono)",
-            fontSize: 12,
-            cursor: questionReady && !isLoading ? "pointer" : "default",
-          }}
+          style={{ borderStyle: "dashed", color: "var(--fg-soft)" }}
         >
-          {t("question.customOption")}
+          <span className="kk-option-key" style={{ color: "var(--gold)" }}>E —</span>
+          <span>{t("question.customOption")}</span>
         </button>
       </div>
 
       {customMode && (
-        <div style={{ marginTop: 12, padding: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--dim)", fontFamily: "var(--mono)", marginBottom: 8 }}>{t("question.customTitle")}</div>
+        <div style={{ marginTop: 12, border: "1px dashed var(--gold-soft)", padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
+          <span className="kk-label" style={{ color: "var(--gold)" }}>{t("question.customTitle")}</span>
           <textarea
+            className="kk-field"
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
             rows={3}
             placeholder={t("question.customPlaceholder")}
-            style={{ width: "100%", boxSizing: "border-box", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--fg)", padding: 10, fontFamily: "var(--body)", fontSize: 13, resize: "vertical" }}
+            style={{ resize: "vertical" }}
           />
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
-            <button type="button" onClick={() => setCustomMode(false)} style={{ ...btnSmall, fontSize: 10 }}>{t("question.cancel")}</button>
-            <button type="button" onClick={submitCustom} disabled={customText.trim().length < 3 || isLoading} style={{ ...btnSmall, borderColor: "var(--accent)", color: "var(--accent)", fontSize: 10 }}>{t("question.sendAnswer")}</button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="button" className="kk-btn-primary" style={{ padding: "10px 22px", fontSize: 12 }} disabled={customText.trim().length < 3 || isLoading} onClick={submitCustom}>
+              {t("question.sendAnswer")}
+            </button>
+            <button type="button" className="kk-btn-ghost" style={{ padding: "10px 18px" }} onClick={() => setCustomMode(false)}>
+              {t("question.cancel")}
+            </button>
           </div>
         </div>
       )}
@@ -630,9 +625,9 @@ function QuestionScreen({
       <AskBox onAskOpinion={onAskOpinion} onRephrase={onRephrase} isLoading={isLoading} opinion={opinion} onCloseOpinion={onCloseOpinion} askError={askError} onClearAskError={onClearAskError} metaRemaining={metaRemaining} />
 
       {error && (
-        <div style={{ marginTop: 16, padding: 12, border: "1px solid #f87171", background: "rgba(248,113,113,0.08)", color: "#fecaca", fontFamily: "var(--mono)", fontSize: 12 }}>
+        <div style={{ marginTop: 16, padding: 12, border: "1px solid var(--error)", background: "rgba(248,113,113,0.08)", color: "var(--error-soft)", fontFamily: "var(--mono)", fontSize: 12 }}>
           {error}
-          <button onClick={() => { onClearError?.(); onForceAnalysis?.(); }} style={{ marginLeft: 12, background: "transparent", border: "1px solid #f87171", color: "#fecaca", padding: "2px 8px", cursor: "pointer" }}>
+          <button onClick={() => { onClearError?.(); onForceAnalysis?.(); }} style={{ marginLeft: 12, background: "transparent", border: "1px solid var(--error)", color: "var(--error-soft)", padding: "2px 8px", cursor: "pointer", fontFamily: "var(--mono)" }}>
             {t("question.retryAnalysis")}
           </button>
         </div>
@@ -641,23 +636,14 @@ function QuestionScreen({
       {showAnalysisButton && !isLoading && (
         <div style={{ marginTop: 28, paddingTop: 20, borderTop: "1px dashed var(--border)", textAlign: "center" }}>
           <p style={{ fontSize: 11, color: analysisReady ? "var(--accent)" : "var(--dim)", fontFamily: "var(--mono)", marginBottom: 12, letterSpacing: 1 }}>
-            {analysisReady
-              ? t("question.readyForAnalysis")
-              : t("question.canRequestAnalysis", { min: MIN_QUESTIONS_SUGGEST })}
+            {analysisReady ? t("question.readyForAnalysis") : t("question.canRequestAnalysis", { min: MIN_QUESTIONS_SUGGEST })}
           </p>
-          <button onClick={onForceAnalysis} style={{
-            background: "transparent", border: "1px solid var(--accent)", color: "var(--accent)",
-            padding: "10px 24px", fontSize: 11, letterSpacing: 2, cursor: "pointer",
-            fontFamily: "var(--mono)", transition: "all 0.2s", textTransform: "uppercase"
-          }}
-            onMouseEnter={e => { e.target.style.background = "var(--accent)"; e.target.style.color = "#000"; }}
-            onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = "var(--accent)"; }}
-          >
+          <button className="kk-btn-primary" onClick={onForceAnalysis}>
             {t("question.getAnalysisNow")}
           </button>
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -669,35 +655,42 @@ function AnalyzingScreen({ error, onClearError, onForceAnalysis, analyzingStatus
     const id = setInterval(() => setPhase((p) => Math.min(p + 1, phases.length - 1)), 2200);
     return () => clearInterval(id);
   }, [phases.length]);
-  const label = analyzingStatus || phases[phase];
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: 32 }}>
-      <div style={{ width: 1, height: 60, background: "linear-gradient(to bottom, transparent, var(--accent))", marginBottom: 32 }} />
-      <div style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: 3, color: "var(--accent)", marginBottom: 12, textAlign: "center" }}>
-        {label}<span style={{ animation: "blink 0.8s infinite" }}>_</span>
-      </div>
-      {answerCount > 0 && (
-        <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--dim)", marginBottom: 24 }}>
-          {t("analyzing.processingAnswers", { count: answerCount })}
-        </div>
-      )}
-      <div style={{ display: "flex", gap: 6 }}>
-        {phases.map((_, i) => (
-          <div key={i} style={{ width: 6, height: 6, background: i <= phase ? "var(--accent)" : "var(--border)", transition: "background 0.3s", boxShadow: i <= phase ? "0 0 6px var(--accent)" : "none" }} />
+    <section style={{
+      position: "relative", zIndex: 1, minHeight: "100vh", display: "flex",
+      flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 28px",
+    }}>
+      <img src="/rosten-logo.svg" alt="" style={{ width: 52, height: 52, marginBottom: 36, filter: "drop-shadow(0 0 24px var(--accent-alpha-25))" }} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, fontFamily: "var(--mono)", fontSize: 13, letterSpacing: "0.18em" }}>
+        {phases.map((p, i) => (
+          <div key={p} style={{
+            display: "flex", alignItems: "center", gap: 14,
+            color: i < phase ? "var(--dim)" : i === phase ? "var(--accent-bright)" : "var(--dim-2)",
+            transition: "color 0.4s",
+          }}>
+            <span style={{ width: 16, textAlign: "center" }}>
+              {i < phase ? "✓" : i === phase ? "▍" : "·"}
+            </span>
+            {p}
+          </div>
         ))}
       </div>
-
+      {answerCount > 0 && (
+        <span className="kk-label" style={{ marginTop: 36 }}>
+          {t("analyzing.processingAnswers", { count: answerCount })}
+        </span>
+      )}
       {error && (
-        <div style={{ marginTop: 32, maxWidth: 420, textAlign: "center", color: "#fecaca", fontFamily: "var(--mono)", fontSize: 12 }}>
+        <div style={{ marginTop: 32, maxWidth: 420, textAlign: "center", color: "var(--error-soft)", fontFamily: "var(--mono)", fontSize: 12 }}>
           {error}
           <div style={{ marginTop: 12 }}>
-            <button onClick={() => { onClearError?.(); onForceAnalysis?.(); }} style={{ background: "transparent", border: "1px solid #f87171", color: "#fecaca", padding: "6px 14px", cursor: "pointer" }}>
+            <button onClick={() => { onClearError?.(); onForceAnalysis?.(); }} className="kk-btn-ghost" style={{ padding: "6px 18px" }}>
               {t("analyzing.retry")}
             </button>
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -713,23 +706,6 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
   const raw = (analysis || data?.analysis || "").trim();
   const hasFrameworks = data?.frameworks && typeof data.frameworks === "object" && Object.keys(data.frameworks).length > 0;
   const showHelhetsrapport = activeTab === "helhetsrapport" || !hasFrameworks;
-
-  const tabStyle = {
-    background: "transparent",
-    border: "1px solid var(--border)",
-    color: "var(--dim)",
-    padding: "8px 18px",
-    fontSize: 11,
-    letterSpacing: 1,
-    cursor: "pointer",
-    fontFamily: "var(--mono)",
-    transition: "all 0.2s",
-  };
-  const activeTabStyle = {
-    borderColor: "var(--accent)",
-    color: "var(--accent)",
-    background: "rgba(129,140,248,0.08)",
-  };
 
   // Prefer structured data from LLM if present (sections or frameworks)
   let sections = [];
@@ -773,92 +749,92 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
   };
 
   return (
-    <div className="layout-shell layout-shell--report" style={{ maxWidth: 720, margin: "0 auto", padding: "60px 24px", opacity: visible ? 1 : 0, transition: "opacity 0.8s ease", width: "100%", boxSizing: "border-box" }}>
-      <div style={{ textAlign: "center", marginBottom: 64 }}>
-        <div style={{ fontSize: 10, letterSpacing: 4, color: "var(--accent)", fontFamily: "var(--mono)", marginBottom: 16 }}>
-          {t("report.complete")}
-        </div>
-        <h2 style={{ fontFamily: "var(--display)", fontSize: "clamp(1.8rem, 4vw, 3rem)", fontWeight: 900, letterSpacing: -1, color: "var(--fg)" }}>
-          {t("report.titleLine1")}<br /><span style={{ color: "var(--accent)" }}>{t("report.titleLine2")}</span>
-        </h2>
-        <p style={{ marginTop: 12, fontSize: 11, color: "var(--dim)", fontFamily: "var(--mono)" }}>
-          {brand.name} · {brand.product}
-        </p>
-        <div style={{ width: 40, height: 1, background: "var(--accent)", margin: "24px auto" }} />
-      </div>
-
-      <div style={{ marginBottom: 32, padding: 14, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12, lineHeight: 1.7, color: "var(--dim)", fontFamily: "var(--mono)" }}>
+    <section style={{
+      position: "relative", zIndex: 1, maxWidth: 760, margin: "0 auto",
+      padding: "120px var(--pad-x) 90px", opacity: visible ? 1 : 0, transition: "opacity 0.8s ease",
+    }}>
+      <span className="kk-label kk-rise" style={{ color: "var(--ok, #6ee7b7)" }}>✓ {t("report.complete")}</span>
+      <h1 className="kk-rise kk-rise-1" style={{
+        fontFamily: "var(--mono)", fontWeight: 600, lineHeight: 1.05,
+        fontSize: "clamp(34px, 8vw, 56px)", margin: "18px 0 14px",
+      }}>
+        <span className="kk-shimmer">{t("report.titleLine1")}</span><br />
+        <span className="kk-shimmer-accent">{t("report.titleLine2")}</span>
+      </h1>
+      <p className="kk-rise kk-rise-2" style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.08em", color: "var(--dim)", marginBottom: 36, lineHeight: 1.7 }}>
         {t("report.disclaimer")}
-      </div>
+      </p>
 
       {data?.short_summary && (
-        <div style={{ marginBottom: 32, padding: 16, border: "1px solid var(--accent-dim)", background: "rgba(129,140,248,0.06)" }}>
-          <div style={{ fontFamily: "var(--mono)", fontSize: 10, letterSpacing: 2, color: "var(--accent)", marginBottom: 10 }}>{t("report.shortSummary")}</div>
-          <p style={{ color: "var(--fg-soft)", lineHeight: 1.8, fontSize: 14, fontFamily: "var(--body)" }}>{data.short_summary}</p>
-          <button type="button" onClick={() => navigator.clipboard.writeText(data.short_summary)} style={{ ...btnSmall, marginTop: 12, fontSize: 10 }}>
-            {t("report.copyShort")}
-          </button>
+        <div className="kk-rise kk-rise-2" style={{
+          borderLeft: "2px solid var(--gold)", background: "var(--surface)",
+          padding: "24px 28px", marginBottom: 40,
+        }}>
+          <span className="kk-label" style={{ color: "var(--gold)" }}>
+            {t("report.shortSummary")}{participant?.name ? ` · ${participant.name.split(" ")[0]}` : ""}
+          </span>
+          <p style={{ fontFamily: "var(--display)", fontStyle: "italic", fontWeight: 500, fontSize: "clamp(21px, 3vw, 24px)", lineHeight: 1.55, marginTop: 12, textWrap: "pretty" }}>
+            {data.short_summary}
+          </p>
         </div>
       )}
 
       {hasFrameworks && (
-        <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 32, flexWrap: "wrap" }}>
-          <button
-            type="button"
-            onClick={() => setActiveTab("helhetsrapport")}
-            style={{ ...tabStyle, ...(activeTab === "helhetsrapport" ? activeTabStyle : {}) }}
-          >
-            {t("report.tabFull")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("rammeverk")}
-            style={{ ...tabStyle, ...(activeTab === "rammeverk" ? activeTabStyle : {}) }}
-          >
-            {t("report.tabFrameworks")}
-          </button>
+        <div className="kk-rise kk-rise-3" style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--border)", marginBottom: 36 }}>
+          {[["helhetsrapport", t("report.tabFull")], ["rammeverk", t("report.tabFrameworks")]].map(([id, label]) => (
+            <button key={id} type="button" onClick={() => setActiveTab(id)} style={{
+              background: "none", border: "none", cursor: "pointer",
+              fontFamily: "var(--mono)", fontSize: 12, letterSpacing: "0.16em",
+              padding: "12px 22px",
+              color: activeTab === id ? "var(--accent-bright)" : "var(--dim)",
+              borderBottom: activeTab === id ? "2px solid var(--accent)" : "2px solid transparent",
+              marginBottom: -1, transition: "color 0.2s",
+            }}>{label}</button>
+          ))}
         </div>
       )}
 
       {showHelhetsrapport && (
-        <>
+        <div style={{ display: "flex", flexDirection: "column", gap: 44 }}>
           {data?.overall_insight && (
-            <div style={{ marginBottom: 40, padding: 16, background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: 2, color: "var(--accent)", marginBottom: 10 }}>
-                {t("report.overallInsight")}
-              </div>
-              <div style={{ color: "var(--fg-soft)", lineHeight: 1.8, fontSize: 14, fontFamily: "var(--body)", whiteSpace: "pre-line" }}>
+            <div>
+              <h2 className="kk-label" style={{ color: "var(--accent)", marginBottom: 18 }}>{t("report.overallInsight")}</h2>
+              <div style={{ color: "var(--fg-soft)", lineHeight: 1.8, fontSize: 18.5, fontFamily: "var(--body)", whiteSpace: "pre-line" }}>
                 {data.overall_insight}
               </div>
             </div>
           )}
 
           {data?.conflicts?.length > 0 && (
-            <div style={{ marginBottom: 32, padding: 14, border: "1px solid var(--border)", background: "var(--surface)" }}>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: 2, color: "var(--accent)", marginBottom: 8 }}>{t("report.conflicts")}</div>
-              <ul style={{ margin: 0, paddingLeft: 18, color: "var(--fg-soft)", fontSize: 13, lineHeight: 1.7, fontFamily: "var(--body)" }}>
-                {data.conflicts.map((c, i) => <li key={i}>{c}</li>)}
-              </ul>
+            <div>
+              <h2 className="kk-label" style={{ color: "var(--accent)", marginBottom: 18 }}>{t("report.conflicts")}</h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {data.conflicts.map((c, i) => (
+                  <div key={i} style={{ display: "flex", gap: 16, border: "1px solid var(--border)", background: "var(--surface)", padding: "16px 20px" }}>
+                    <span style={{ fontFamily: "var(--mono)", color: "var(--gold)", fontSize: 13 }}>⇄</span>
+                    <p style={{ fontSize: 17.5, lineHeight: 1.6, color: "var(--fg-soft)", textWrap: "pretty", margin: 0 }}>{c}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           {data?.clinical_followup && (
-            <div style={{ marginBottom: 40, padding: 16, border: "1px dashed var(--border)", background: "rgba(140,118,88,0.06)" }}>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: 2, color: "var(--bronze, #8c7658)", marginBottom: 8 }}>{t("report.clinicalFollowup")}</div>
-              <p style={{ color: "var(--fg-soft)", lineHeight: 1.8, fontSize: 14, fontFamily: "var(--body)", margin: 0 }}>{data.clinical_followup}</p>
+            <div>
+              <h2 className="kk-label" style={{ color: "var(--accent)", marginBottom: 18 }}>{t("report.clinicalFollowup")}</h2>
+              <p style={{ color: "var(--fg-soft)", lineHeight: 1.8, fontSize: 17.5, fontFamily: "var(--body)", margin: 0 }}>{data.clinical_followup}</p>
             </div>
           )}
 
           {data?.key_themes?.length > 0 && (
-            <div style={{ marginBottom: 40 }}>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: 2, color: "var(--accent)", marginBottom: 12 }}>
-                {t("report.keyThemes")}
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <h2 className="kk-label" style={{ color: "var(--accent)", marginBottom: 18 }}>{t("report.keyThemes")}</h2>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                 {data.key_themes.map((theme, i) => (
                   <span key={i} style={{
-                    fontSize: 12, fontFamily: "var(--mono)", padding: "6px 10px",
-                    border: "1px solid var(--border)", color: "var(--fg-soft)", background: "var(--surface)"
+                    fontFamily: "var(--mono)", fontSize: 12, letterSpacing: "0.08em",
+                    border: "1px solid var(--border-soft, var(--border))", color: "var(--accent-bright)",
+                    background: "var(--accent-alpha-08)", padding: "7px 14px",
                   }}>
                     {theme}
                   </span>
@@ -870,141 +846,116 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
           {raw ? (
             sections.length > 0 ? (
               sections.map((s, i) => (
-                <div key={i} style={{ marginBottom: 48, paddingBottom: 48, borderBottom: i < sections.length - 1 ? "1px solid var(--border)" : "none" }}>
+                <div key={i}>
                   {s.title && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-                      <div style={{ width: 3, height: 20, background: "var(--accent)", flexShrink: 0 }} />
-                      <h3 style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: 2, color: "var(--accent)", fontWeight: 400 }}>
-                        {s.title.toUpperCase()}
-                      </h3>
-                    </div>
+                    <h2 className="kk-label" style={{ color: "var(--accent)", marginBottom: 18 }}>
+                      {s.title.toUpperCase()}
+                    </h2>
                   )}
                   {s.observation || s.interpretation || s.uncertainty ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                       {s.observation && (
-                        <div><span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--accent)" }}>{t("report.observation")}</span><span style={{ color: "var(--fg-soft)", fontSize: 14, lineHeight: 1.8, fontFamily: "var(--body)" }}>{s.observation}</span></div>
+                        <p style={{ fontSize: 18.5, lineHeight: 1.65, textWrap: "pretty", margin: 0 }}>
+                          <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, letterSpacing: "0.14em", color: "var(--dim)" }}>{t("report.observation").toUpperCase()} · </span>
+                          <span style={{ color: "var(--fg-soft)" }}>{s.observation}</span>
+                        </p>
                       )}
                       {s.interpretation && (
-                        <div><span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--dim)" }}>{t("report.interpretation")}</span><span style={{ color: "var(--fg-soft)", fontSize: 14, lineHeight: 1.8, fontFamily: "var(--body)" }}>{s.interpretation}</span></div>
+                        <p style={{ fontSize: 18.5, lineHeight: 1.65, textWrap: "pretty", margin: 0 }}>
+                          <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, letterSpacing: "0.14em", color: "var(--dim)" }}>{t("report.interpretation").toUpperCase()} · </span>
+                          <span style={{ color: "var(--fg-soft)" }}>{s.interpretation}</span>
+                        </p>
                       )}
                       {s.uncertainty && (
-                        <div><span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--dim-2)" }}>{t("report.uncertainty")}</span><span style={{ color: "var(--dim)", fontSize: 13, lineHeight: 1.7, fontFamily: "var(--body)" }}>{s.uncertainty}</span></div>
+                        <p style={{ fontSize: 17, lineHeight: 1.6, textWrap: "pretty", margin: 0 }}>
+                          <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, letterSpacing: "0.14em", color: "var(--dim-2)" }}>{t("report.uncertainty").toUpperCase()} · </span>
+                          <span style={{ color: "var(--dim)" }}>{s.uncertainty}</span>
+                        </p>
                       )}
                     </div>
                   ) : (
-                    <div style={{ color: "var(--fg-soft)", lineHeight: 1.9, fontSize: 14, fontFamily: "var(--body)", whiteSpace: "pre-line" }}>
+                    <div style={{ color: "var(--fg-soft)", lineHeight: 1.9, fontSize: 17.5, fontFamily: "var(--body)", whiteSpace: "pre-line" }}>
                       {s.raw || t("report.noSectionContent")}
                     </div>
                   )}
                 </div>
               ))
             ) : (
-              <div style={{ color: "var(--fg-soft)", lineHeight: 1.8, fontSize: 14, fontFamily: "var(--body)", marginBottom: 32 }}>
+              <div style={{ color: "var(--fg-soft)", lineHeight: 1.8, fontSize: 17.5, fontFamily: "var(--body)" }}>
                 {t("report.missingSections")}
               </div>
             )
           ) : (
-            <div style={{ color: "#fecaca", marginBottom: 32 }}>{t("report.noReportText")}</div>
+            <div style={{ color: "var(--error-soft)", fontFamily: "var(--mono)", fontSize: 12 }}>{t("report.noReportText")}</div>
           )}
-        </>
-      )}
-
-      {activeTab === "rammeverk" && hasFrameworks && (
-        <div style={{ marginBottom: 48 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-            <div style={{ width: 3, height: 20, background: "var(--accent)", flexShrink: 0 }} />
-            <h3 style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: 2, color: "var(--accent)", fontWeight: 400 }}>
-              {t("report.frameworkSummaries")}
-            </h3>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-            {Object.keys(data.frameworks).map((fw) => {
-              const info = data.frameworks[fw];
-              return (
-                <div key={fw} style={{ padding: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
-                  <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--accent)", marginBottom: 6, letterSpacing: 1 }}>
-                    {(frameworkLabels[fw] || fw).toUpperCase()}
-                  </div>
-                  {info && typeof info === "object" ? (
-                    <>
-                      {info.summary && <div style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 6, color: "var(--fg-soft)" }}>{info.summary}</div>}
-                      {Array.isArray(info.key_patterns) && info.key_patterns.length > 0 && (
-                        <div style={{ fontSize: 12, color: "var(--dim)", marginBottom: 4 }}>
-                          {t("report.keyPatterns")}{info.key_patterns.join(", ")}
-                        </div>
-                      )}
-                      {info.evidence_from_answers && (
-                        <div style={{ fontSize: 12, marginTop: 4, color: "var(--fg-soft)", lineHeight: 1.6 }}>
-                          {t("report.evidence")}{info.evidence_from_answers}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div style={{ fontSize: 13, color: "var(--fg-soft)" }}>{String(info)}</div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 32 }}>
-        <button onClick={copyReport} style={{
-          background: "transparent", border: "1px solid var(--border)", color: "var(--dim)",
-          padding: "8px 18px", fontSize: 11, letterSpacing: 1, cursor: "pointer",
-          fontFamily: "var(--mono)"
-        }}>
-          {t("report.copyRaw")}
-        </button>
-        <button
-          type="button"
-          onClick={downloadPdf}
-          disabled={pdfBusy || !exportText}
-          style={{
-            background: "transparent", border: "1px solid var(--border)", color: "var(--dim)",
-            padding: "8px 18px", fontSize: 11, letterSpacing: 1, cursor: pdfBusy ? "wait" : "pointer",
-            fontFamily: "var(--mono)", opacity: pdfBusy ? 0.6 : 1,
-          }}
-        >
+      {activeTab === "rammeverk" && hasFrameworks && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {Object.keys(data.frameworks).map((fw) => {
+            const info = data.frameworks[fw];
+            return (
+              <div key={fw} className="kk-card">
+                <h3 style={{ fontFamily: "var(--mono)", fontSize: 13, letterSpacing: "0.2em", color: "var(--accent-bright)", marginBottom: 14 }}>
+                  {(frameworkLabels[fw] || fw).toUpperCase()}
+                </h3>
+                {info && typeof info === "object" ? (
+                  <>
+                    {info.summary && (
+                      <p style={{ fontSize: 17.5, lineHeight: 1.6, color: "var(--fg-soft)", marginBottom: 14, textWrap: "pretty", margin: "0 0 14px 0" }}>
+                        <span style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.14em", color: "var(--dim)" }}>{t("report.keyPatterns").toUpperCase()} · </span>
+                        {info.summary}
+                      </p>
+                    )}
+                    {Array.isArray(info.key_patterns) && info.key_patterns.length > 0 && (
+                      <p style={{ fontSize: 17.5, lineHeight: 1.6, color: "var(--fg-soft)", marginBottom: 14, textWrap: "pretty", margin: "0 0 14px 0" }}>
+                        <span style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.14em", color: "var(--dim)" }}>{t("report.keyPatterns").toUpperCase()} · </span>
+                        {info.key_patterns.join(", ")}
+                      </p>
+                    )}
+                    {info.evidence_from_answers && (
+                      <p style={{ fontSize: 17, fontStyle: "italic", color: "var(--gold)", lineHeight: 1.55, margin: 0 }}>
+                        {info.evidence_from_answers}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p style={{ fontSize: 17.5, color: "var(--fg-soft)", margin: 0 }}>{String(info)}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 14, marginTop: 56, flexWrap: "wrap" }}>
+        <button type="button" className="kk-btn-primary" onClick={downloadPdf} disabled={pdfBusy || !exportText} style={{ opacity: pdfBusy ? 0.6 : 1, cursor: pdfBusy ? "wait" : "pointer" }}>
           {pdfBusy ? t("report.generatingPdf") : t("report.downloadPdf")}
         </button>
-        <button onClick={() => setShowRaw(!showRaw)} style={{
-          background: "transparent", border: "1px solid var(--border)", color: "var(--dim)",
-          padding: "8px 18px", fontSize: 11, letterSpacing: 1, cursor: "pointer",
-          fontFamily: "var(--mono)"
-        }}>
+        <button type="button" className="kk-btn-ghost" onClick={copyReport}>
+          {t("report.copyRaw")}
+        </button>
+        <button type="button" className="kk-btn-ghost" onClick={() => setShowRaw(!showRaw)}>
           {showRaw ? t("report.hideRaw") : t("report.showRaw")} {t("report.rawText")}
+        </button>
+        <button type="button" className="kk-btn-ghost" onClick={onRestart}>
+          {t("report.newAnalysis")}
         </button>
       </div>
 
       {showRaw && raw && (
         <pre style={{
           whiteSpace: "pre-wrap", fontFamily: "var(--mono)", fontSize: 12, color: "var(--fg-soft)",
-          background: "var(--surface)", padding: 16, border: "1px solid var(--border)", overflowX: "auto", marginBottom: 32
+          background: "var(--surface)", padding: 16, border: "1px solid var(--border)", overflowX: "auto", marginTop: 24,
         }}>
           {raw}
         </pre>
       )}
 
-      <div style={{ marginTop: 40, marginBottom: 24 }}>
-        <CrisisHelpBox compact />
-        <ContactRosten style={{ marginTop: 12 }} />
-      </div>
-
-      <div style={{ textAlign: "center", marginTop: 16 }}>
-        <button onClick={onRestart} style={{
-          background: "transparent", border: "1px solid var(--border)", color: "var(--dim)",
-          padding: "12px 32px", fontSize: 11, letterSpacing: 2, cursor: "pointer",
-          fontFamily: "var(--mono)", transition: "all 0.2s"
-        }}
-          onMouseEnter={e => { e.target.style.borderColor = "var(--accent)"; e.target.style.color = "var(--accent)"; }}
-          onMouseLeave={e => { e.target.style.borderColor = "var(--border)"; e.target.style.color = "var(--dim)"; }}
-        >
-          {t("report.newAnalysis")}
-        </button>
-      </div>
-    </div>
+      <div style={{ marginTop: 40 }}><CrisisBox /></div>
+      <BrandFooter />
+    </section>
   );
 }
 
@@ -1027,7 +978,7 @@ export default function App() {
     };
   }
 
-  const [phase, setPhase] = useState(initial ? (initial.phase || "intro") : "landing");
+  const [phase, setPhase] = useState(initial?.phase || "landing");
   const [conversationHistory, setConversationHistory] = useState(initial?.conversationHistory || []);
   const [structuredAnswers, setStructuredAnswers] = useState(initial?.structuredAnswers || []);
   const [coveredCategoryIds, setCoveredCategoryIds] = useState(initial?.coveredCategoryIds || []);
@@ -1694,29 +1645,27 @@ export default function App() {
   };
 
   return (
-    <div className={phase === "landing" ? undefined : "app-root"}>
-      <style>{`
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: var(--bg); }
-        ::-webkit-scrollbar-thumb { background: var(--border); }
-      `}</style>
-      {phase === "landing" && (
-        <>
-          <BrandHeader right={<LanguageSwitcher />} />
-          <Landing onStart={() => setPhase("intro")} />
-        </>
-      )}
-      {phase !== "landing" && (
-        <>
-          <ScanlineOverlay />
-          <BrandWatermark />
-          <BrandHeader
-            onLogo={phase === "intro" ? () => setPhase("landing") : undefined}
-            right={<LanguageSwitcher />}
-          />
-          <BrandFooter />
-        </>
-      )}
+    <div className="app-root">
+      <ParticleField mode="partikler" intensity={1} />
+      <BrandHeader
+        onLogo={() => setPhase("landing")}
+        right={
+          phase === "landing" ? (
+            <button className="kk-btn-ghost" style={{ padding: "9px 18px", fontSize: 11 }} onClick={() => setPhase("intro")}>
+              START&ensp;▸
+            </button>
+          ) : (
+            <span className="kk-label">{({
+              intro: "Registrering",
+              questions: "Datainnsamling",
+              ready_for_analysis: "Datainnsamling",
+              analyzing: "Analyse",
+              result: "Rapport",
+            })[phase] || ""}</span>
+          )
+        }
+      />
+      {phase === "landing" && <Landing onStart={() => { setPhase("intro"); window.scrollTo(0, 0); }} />}
       {phase === "intro" && (
         <IntroScreen
           onStart={startAnalysis}
