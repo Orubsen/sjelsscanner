@@ -131,6 +131,25 @@ export function ContactRosten({ style = {} }) {
   );
 }
 
+/* Non-collapsible gold-styled crisis box matching the redesign */
+export function CrisisBox() {
+  return (
+    <div style={{
+      border: "1px solid rgba(197,163,104,0.3)",
+      background: "var(--gold-alpha-12)",
+      padding: "14px 18px",
+      display: "flex", flexDirection: "column", gap: 6,
+    }}>
+      <span className="kk-label" style={{ color: "var(--gold)" }}>Trenger du hjelp nå?</span>
+      <span style={{ fontSize: 15, color: "var(--fg-soft)", lineHeight: 1.5 }}>
+        Kjernekoden erstatter ikke krisehjelp eller behandling. Mental Helse:{" "}
+        <a href="tel:116123" style={{ color: "var(--gold)" }}>116 123</a> · Akutt:{" "}
+        <a href="tel:113" style={{ color: "var(--gold)" }}>113</a>
+      </span>
+    </div>
+  );
+}
+
 export function ConsentDetails() {
   const { t } = useI18n();
   const privacyHref = "/personvern";
