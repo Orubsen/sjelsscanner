@@ -108,7 +108,16 @@ export function buildLeanQuestionMessages(structuredAnswers, messages, participa
   // This prevents Gemini from degrading JSON schema adherence in long sessions (q16+).
   // Analysis calls (step1/step2) use their own messages with maxDetailed=25.
   const summary = formatStructuredAnswersForApi(structuredAnswers, locale, 3);
-  const last = messages?.[messages.length - 1];
+
+  // Take the last 2 messages from the original history. For Q2 this is typically
+  // [assistant: Q1_json, user: Q1_answer], which gives toGeminiContents the data to
+  // produce proper alternating turns (User → Model → User) instead of one merged blob.
+  // Proper turn alternation significantly improves Gemini's JSON schema adherence.
+  // On client retry the tail will be [user: answer, user: retryInstruction] — both
+  // get merged by toGeminiContents, but crucially the original answer is no longer
+  // dropped (fixes the context-loss bug on retry).
+  const tail = (messages || []).slice(-2);
+
   const out = [
     {
       role: "user",
@@ -118,8 +127,8 @@ export function buildLeanQuestionMessages(structuredAnswers, messages, participa
       role: "user",
       content: `${structuredAnswersLabel(locale)}\n${summary}`,
     },
+    ...tail,
   ];
-  if (last?.role === "user") out.push(last);
   return prependParticipantMessages(out, participant, locale);
 }
 

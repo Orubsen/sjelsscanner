@@ -195,6 +195,7 @@ export default async (request) => {
   }
 
   try {
+    const handlerStart = Date.now();
     const body = await request.json();
     const model = body.model || DEFAULT_MODEL;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -398,9 +399,13 @@ export default async (request) => {
               // responseSchema intentionally omitted
             },
           };
-          // Tight timeout for server-side retry: 4s leaves room within the 10s function limit.
+          // Dynamic timeout for server-side retry: use remaining wall-clock budget.
+          // Netlify Pro allows 26s per function invocation, so give the retry up to
+          // 15s if the main call was fast, or 2s minimum if it was slow.
+          const elapsed = Date.now() - handlerStart;
+          const retryBudget = Math.min(15000, Math.max(2000, 25000 - elapsed));
           const retrySignal = typeof AbortSignal !== "undefined" && AbortSignal.timeout
-            ? AbortSignal.timeout(4000)
+            ? AbortSignal.timeout(retryBudget)
             : undefined;
 
           let retryOk = false;
