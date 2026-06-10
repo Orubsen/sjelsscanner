@@ -160,6 +160,33 @@ export function buildStep1Messages(structuredAnswers, participant, locale = "nb"
   ];
 }
 
+/**
+ * Single-step analysis messages — no step1 required.
+ * Sends ALL answers (maxDetailed=25) so the model has complete data.
+ * Use with analysisMode:true and analysis_schema:true in callClaude.
+ *
+ * Why single-step instead of step1+step2:
+ *   step1 was given getAnalysisSystemPrompt (which says type:"analysis")
+ *   while its user message said type:"internal_summary" — a conflict that
+ *   caused Gemini to generate a truncated type:"analysis" object. step2 then
+ *   received that corrupted summary and generated custom fields
+ *   (forensic_flags, dark_triad_assessment) while omitting the required
+ *   "analysis" text and "frameworks" object. Removing step1 eliminates the
+ *   conflict and lets step2's system prompt and responseSchema work cleanly.
+ */
+export function buildDirectAnalysisMessages(structuredAnswers, conversationTail, participant, locale = "nb") {
+  const p = buildParticipantContext(participant, locale);
+  const step2 = getAnalysisStep2(locale);
+  // Include ALL answers (25 max) so the model has the full dataset for analysis.
+  return [
+    ...(conversationTail || []).slice(-4),
+    {
+      role: "user",
+      content: `${p ? `${p}\n\n` : ""}${step2}\n\n${structuredAnswersLabel(locale)}\n${formatStructuredAnswersForApi(structuredAnswers, locale, 25)}`,
+    },
+  ];
+}
+
 export function buildStep2Messages(structuredAnswers, step1Result, conversationTail, participant, locale = "nb") {
   const summary =
     step1Result?.summary_text ||

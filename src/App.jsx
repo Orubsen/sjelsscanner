@@ -22,8 +22,8 @@ import {
   applyQuestionMeta,
   canSuggestAnalysis,
   mustForceAnalysis,
-  buildStep1Messages,
   buildStep2Messages,
+  buildDirectAnalysisMessages,
   prepareMessagesForApi,
   getSavedSessionSummary,
   parseSectionBlocks,
@@ -1142,6 +1142,10 @@ export default function App() {
             // Tell the server which retry attempt this is. The server uses this to reduce
             // temperature (→ 0) for more deterministic schema adherence on retries.
             retry_attempt: retryAttempt,
+            // Request the ANALYSIS_RESPONSE_SCHEMA on the server for analysis calls.
+            // The schema enforces "analysis" (10 ## sections) and "frameworks" (5 keys)
+            // which Gemini otherwise replaces with custom fields like forensic_flags.
+            analysis_schema: analysisMode ? true : undefined,
             messages: prepared,
           }),
           signal: controller.signal,
@@ -1288,33 +1292,29 @@ export default function App() {
       setIsLoading(true);
       setOpinion("");
       setPhase("analyzing");
-      setAnalyzingStatus(t("analyzing.step1"));
+      // Single-step analysis: skip step1 (which conflicted with the analysis system
+      // prompt and produced corrupted summaries). Go directly to the full analysis
+      // call with ANALYSIS_RESPONSE_SCHEMA enforcing "analysis" and "frameworks".
+      setAnalyzingStatus(t("analyzing.step2"));
       try {
-        const step1 = await callClaude(buildStep1Messages(structuredAnswers, participant, locale), {
-          structuredAnswers,
-          maxTokens: 1024,
-          skipPrepare: true,
-          analysisMode: true,
-          participant,
-        });
-        setAnalyzingStatus(t("analyzing.step2"));
         let result = await callClaude(
-          buildStep2Messages(structuredAnswers, step1, historyToUse, participant, locale),
-          // 4096 tokens to ensure a full 10-section analysis with all 5 frameworks fits.
-          { structuredAnswers, maxTokens: 4096, skipPrepare: true, analysisMode: true, participant }
+          buildDirectAnalysisMessages(structuredAnswers, historyToUse, participant, locale),
+          // 8192 tokens: full analysis JSON (10 ## sections + 5 frameworks) is ~6000-7000
+          // tokens. Server caps at 8192. Raised from 6000 to accommodate complete output.
+          { structuredAnswers, maxTokens: 8192, skipPrepare: true, analysisMode: true, participant }
         );
         let analysisResult = normalizeAnalysis(result);
         if (!analysisResult.analysis) {
           const retry = await callClaude(
             [
-              ...buildStep2Messages(structuredAnswers, step1, historyToUse, participant, locale),
+              ...buildDirectAnalysisMessages(structuredAnswers, historyToUse, participant, locale),
               { role: "assistant", content: JSON.stringify(result) },
               {
                 role: "user",
                 content: apiT(locale, "api.analysisRetry"),
               },
             ],
-            { structuredAnswers, maxTokens: 4096, skipPrepare: true, analysisMode: true, participant }
+            { structuredAnswers, maxTokens: 8192, skipPrepare: true, analysisMode: true, participant }
           );
           result = retry;
           analysisResult = normalizeAnalysis(retry);
@@ -1451,8 +1451,8 @@ export default function App() {
       const newHistory = [...conversationHistory, { role: "user", content: messageContent }];
 
       // For the final answer at max questions, short-circuit directly to the dedicated
-      // analysis flow (step1 + step2) instead of trying another LLM call with the force
-      // prompt. This avoids the heavy call that often times out near 50 questions.
+      // analysis flow instead of trying another LLM call with the force prompt.
+      // This avoids the heavy call that often times out near 50 questions.
       if (mustForceAnalysis(questionNumber)) {
         setConversationHistory(newHistory);
         await triggerAnalysis(newHistory);

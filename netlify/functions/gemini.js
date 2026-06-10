@@ -22,6 +22,91 @@ function corsHeaders() {
   };
 }
 
+/**
+ * JSON Schema for analysis-phase responses.
+ * Used when body.analysis_schema === true (direct analysis call, no step1).
+ * Enforces the presence of "analysis" (10 ## sections) and "frameworks" (5 keys)
+ * which Gemini otherwise tends to omit in favour of custom fields like
+ * forensic_flags / dark_triad_assessment that normalizeAnalysis cannot handle.
+ */
+const ANALYSIS_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    type: { type: "string", enum: ["analysis"] },
+    short_summary: { type: "string" },
+    overall_insight: { type: "string" },
+    key_themes: { type: "array", items: { type: "string" } },
+    conflicts: { type: "array", items: { type: "string" } },
+    clinical_followup: { type: "string" },
+    analysis: {
+      type: "string",
+      description: "Full psychoanalytic analysis with all 10 required ## headings, each containing Observasjon/Tolkning/Usikkerhet blocks",
+    },
+    frameworks: {
+      type: "object",
+      properties: {
+        attachment: {
+          type: "object",
+          properties: {
+            summary: { type: "string" },
+            key_patterns: { type: "array", items: { type: "string" } },
+            evidence_from_answers: { type: "string" },
+            quote: { type: "string" },
+            question_index: { type: "integer" },
+          },
+          required: ["summary", "key_patterns", "evidence_from_answers", "quote", "question_index"],
+        },
+        defense_mechanisms: {
+          type: "object",
+          properties: {
+            summary: { type: "string" },
+            key_patterns: { type: "array", items: { type: "string" } },
+            evidence_from_answers: { type: "string" },
+            quote: { type: "string" },
+            question_index: { type: "integer" },
+          },
+          required: ["summary", "key_patterns", "evidence_from_answers", "quote", "question_index"],
+        },
+        jungian_archetypes: {
+          type: "object",
+          properties: {
+            summary: { type: "string" },
+            key_patterns: { type: "array", items: { type: "string" } },
+            evidence_from_answers: { type: "string" },
+            quote: { type: "string" },
+            question_index: { type: "integer" },
+          },
+          required: ["summary", "key_patterns", "evidence_from_answers", "quote", "question_index"],
+        },
+        freudian_analysis: {
+          type: "object",
+          properties: {
+            summary: { type: "string" },
+            key_patterns: { type: "array", items: { type: "string" } },
+            evidence_from_answers: { type: "string" },
+            quote: { type: "string" },
+            question_index: { type: "integer" },
+          },
+          required: ["summary", "key_patterns", "evidence_from_answers", "quote", "question_index"],
+        },
+        ace_impact: {
+          type: "object",
+          properties: {
+            summary: { type: "string" },
+            key_patterns: { type: "array", items: { type: "string" } },
+            evidence_from_answers: { type: "string" },
+            quote: { type: "string" },
+            question_index: { type: "integer" },
+          },
+          required: ["summary", "key_patterns", "evidence_from_answers", "quote", "question_index"],
+        },
+      },
+      required: ["attachment", "defense_mechanisms", "jungian_archetypes", "freudian_analysis", "ace_impact"],
+    },
+  },
+  required: ["type", "short_summary", "overall_insight", "key_themes", "conflicts", "clinical_followup", "analysis", "frameworks"],
+};
+
 /** JSON Schema for mapping-phase responses — inlined (not a separate functions file). */
 const QUESTION_RESPONSE_SCHEMA = {
   type: "object",
@@ -229,6 +314,22 @@ export default async (request) => {
       generationConfig.maxOutputTokens = 1024;
     } else if (body.json_mode) {
       generationConfig.responseMimeType = "application/json";
+      // Analysis calls (direct single-step): disable thinking to maximise generation speed.
+      // Gemini 2.5 Flash thinking tokens can consume 2-5 extra seconds before output starts.
+      // Without thinking, the model generates at full speed (~200-300 tokens/sec), allowing
+      // more output tokens to fit within the Netlify function timeout.
+      // Quality is maintained by the detailed system prompt (getAnalysisSystemPrompt).
+      generationConfig.thinkingConfig = { thinkingBudget: 0 };
+      // Override maxOutputTokens for analysis: use client value capped at 8192.
+      // A full analysis JSON (10 ## sections + 5 frameworks) is ~6000-7000 tokens.
+      // Cap raised from 6000 to 8192 to accommodate complete output.
+      generationConfig.maxOutputTokens = Math.min(body.max_tokens ?? 512, 8192);
+      // Apply analysis response schema when requested (body.analysis_schema === true).
+      // The schema enforces "analysis" and "frameworks" fields that Gemini otherwise omits
+      // in favour of custom fields like forensic_flags / dark_triad_assessment.
+      if (body.analysis_schema === true) {
+        generationConfig.responseSchema = ANALYSIS_RESPONSE_SCHEMA;
+      }
     }
 
     const geminiBody = {
