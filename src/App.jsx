@@ -1105,7 +1105,7 @@ export default function App() {
       participant: participantCtx = null,
     } = options;
 
-    const requestOnce = async (apiMessages, retriesLeft = 2, retryKind = "json") => {
+    const requestOnce = async (apiMessages, retriesLeft = 2, retryKind = "json", retryAttempt = 0) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(
         () => controller.abort(new Error("Analysis request timed out after 180s")),
@@ -1139,6 +1139,9 @@ export default function App() {
             // Let the server know how many answers exist so it can fire auto_analysis_trigger
             // even when Gemini's truncated JSON omits the analysis_ready field.
             question_count: structuredAnswers.length,
+            // Tell the server which retry attempt this is. The server uses this to reduce
+            // temperature (→ 0) for more deterministic schema adherence on retries.
+            retry_attempt: retryAttempt,
             messages: prepared,
           }),
           signal: controller.signal,
@@ -1153,19 +1156,34 @@ export default function App() {
           console.log("[DIAG] 502+retry signal mottatt. retriesLeft=", retriesLeft, "| error=", data?.error);
           if (retriesLeft > 0) {
             console.log("[DIAG] Starter retry. retriesLeft etter:", retriesLeft - 1);
-            // Use a specific retry message when options are missing — generic JSON retry
-            // does not tell Gemini which field is wrong, so Gemini keeps ignoring options.
-            const retryMsg = data?.error === "incomplete_response"
-              ? apiT(locale, "api.incompleteOptionsRetry")
-              : apiT(locale, "api.invalidJsonRetry");
-            return requestOnce(
-              [
-                ...apiMessages,
-                { role: "user", content: retryMsg },
-              ],
-              retriesLeft - 1,
-              "incomplete"
-            );
+
+            // For incomplete_response (missing options): retry WITHOUT appending a
+            // retry message. The incompleteOptionsRetry message contains JSON examples
+            // with escaped quotes that cause Gemini to exit JSON-schema mode and output
+            // unparseable text on the next attempt. The server already handles schema
+            // enforcement; passing retry_attempt signals it to use temperature=0.
+            //
+            // For invalid_json: append invalidJsonRetry which explicitly tells Gemini
+            // to output plain JSON with no surrounding text — this is the most common
+            // cause of parse failure and the message targets it precisely.
+            if (data?.error === "incomplete_response") {
+              return requestOnce(
+                apiMessages,
+                retriesLeft - 1,
+                "incomplete",
+                retryAttempt + 1
+              );
+            } else {
+              return requestOnce(
+                [
+                  ...apiMessages,
+                  { role: "user", content: apiT(locale, "api.invalidJsonRetry") },
+                ],
+                retriesLeft - 1,
+                "json",
+                retryAttempt + 1
+              );
+            }
           } else {
             console.log("[DIAG] Alle retries brukt opp – kaster feil til bruker.");
           }

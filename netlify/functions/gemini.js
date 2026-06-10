@@ -208,12 +208,16 @@ export default async (request) => {
     // Client passes this so the server knows when analysis is appropriate
     // even if Gemini's truncated JSON omits the analysis_ready field.
     const clientQuestionCount = Number(body.question_count) || 0;
+    // Client passes retry_attempt (0=first attempt, 1+=retry). Use temperature=0 on
+    // retries to maximise schema adherence: the client already dropped the retry message
+    // for incomplete_response, so a more deterministic call is the best recovery path.
+    const clientRetryAttempt = Number(body.retry_attempt) || 0;
     if (useQuestionSchema) {
       generationConfig.responseMimeType = "application/json";
       generationConfig.responseSchema = QUESTION_RESPONSE_SCHEMA;
-      if (generationConfig.temperature > 0.5) {
-        generationConfig.temperature = 0.35;
-      }
+      // temperature=0 on retries: fully deterministic → better schema adherence.
+      // temperature=0.35 on first attempt: enough creativity for diverse questions.
+      generationConfig.temperature = clientRetryAttempt > 0 ? 0 : 0.35;
     } else if (body.json_mode) {
       generationConfig.responseMimeType = "application/json";
     }
