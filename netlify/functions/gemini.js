@@ -362,17 +362,35 @@ export default async (request) => {
           const retryInstruction =
             "[CRITICAL ERROR / KRITISK FEIL: options missing. Return ONE valid JSON object — same question, same questionNumber — but NOW include EXACTLY 4 non-empty concrete answer strings in the \"options\" array. Example: {\"type\":\"question\",\"question\":\"...\",\"category\":\"...\",\"questionNumber\":8,\"options\":[\"A. ...\",\"B. ...\",\"C. ...\",\"D. ...\"],\"categories_covered\":[],\"missing_categories\":[],\"analysis_ready\":false,\"readiness_note\":\"\"}. JSON only, no other text.]";
 
+          // If Gemini signals analysis_ready without options, honour its intent:
+          // return a trigger so the client starts the analysis flow immediately.
+          if (parsedCheck.analysis_ready === true) {
+            console.log("gemini: analysis_ready=true utan options – sender auto_analysis_trigger");
+            return new Response(
+              JSON.stringify({
+                content: [{ type: "text", text: JSON.stringify({ type: "auto_analysis_trigger", analysis_ready: true }) }],
+                finishReason,
+              }),
+              { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders() } }
+            );
+          }
+
           const retryContents = [
             ...geminiBody.contents,
             { role: "model", parts: [{ text: t }] },
             { role: "user", parts: [{ text: retryInstruction }] },
           ];
+          // Retry WITHOUT responseSchema — the schema constraint may be causing Gemini
+          // to generate partial JSON. Free-form JSON mode with explicit text instructions
+          // gives better options adherence on retry.
           const retryGeminiBody = {
             ...geminiBody,
             contents: retryContents,
             generationConfig: {
-              ...generationConfig,
+              maxOutputTokens: generationConfig.maxOutputTokens,
               temperature: 0,
+              responseMimeType: "application/json",
+              // responseSchema intentionally omitted
             },
           };
           // Tight timeout for server-side retry: 7s leaves room within the 10s function limit.

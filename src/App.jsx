@@ -1427,6 +1427,15 @@ export default function App() {
 
       try {
         const result = await callClaude(newHistory, callOptions);
+
+        // Gemini signalled analysis_ready without providing question options.
+        // Honour its intent by triggering the analysis flow directly.
+        if (result?.type === "auto_analysis_trigger") {
+          setConversationHistory(newHistory);
+          await triggerAnalysis(newHistory);
+          return;
+        }
+
         const analysisResult = normalizeAnalysis(result);
         const updatedHistory = [
           ...newHistory,
