@@ -11,6 +11,7 @@ import {
 import { useI18n } from "./i18n/I18nContext.jsx";
 import { LanguageSwitcher } from "./i18n/LanguageSwitcher.jsx";
 import { apiT } from "./i18n/apiMessages.js";
+import { getAnalysisSystemPrompt } from "./i18n/systemPrompts.js";
 import {
   normalizeAnalysis,
   formatStructuredAnswersForApi,
@@ -1100,6 +1101,7 @@ export default function App() {
       maxTokens = 2048,
       skipPrepare = false,
       jsonMode = false,
+      analysisMode = false,
       participant: participantCtx = null,
     } = options;
 
@@ -1121,17 +1123,19 @@ export default function App() {
           body: JSON.stringify({
             model: "gemini-2.5-flash",
             max_tokens: maxTokens,
-            json_mode: jsonMode,
+            json_mode: jsonMode || analysisMode,
             json_schema: jsonMode ? "question" : undefined,
-            temperature: jsonMode ? 0.35 : undefined,
-            // For analysis calls (skipPrepare WITHOUT jsonMode), omit the question-mode
-            // system prompt — it says "STRICTLY IN QUESTION/MAPPING MODE" which overrides
-            // step1/step2 instructions and causes Gemini to return {"type":"question"}.
-            // IMPORTANT: keep system prompt when jsonMode=true (e.g. startAnalysis init
-            // call uses skipPrepare:true + jsonMode:true and NEEDS the system prompt to
-            // generate question 1 correctly — without it Gemini sets analysis_ready:true
-            // at Q1 and sometimes returns missing options, causing repeated 502 errors).
-            system: (skipPrepare && !jsonMode) ? undefined : systemPrompt,
+            temperature: (jsonMode || analysisMode) ? 0.35 : undefined,
+            // System prompt routing:
+            // - analysisMode=true → send dedicated analysis system prompt (has ANALYSIS FORMAT,
+            //   no MAPPING PHASE restrictions). Used for step1/step2 analysis calls.
+            // - jsonMode=true (question mode) → send question-mode system prompt (has MAPPING PHASE
+            //   rules, QUESTION FORMAT, ANALYSIS FORMAT). Used for normal question turns.
+            // - skipPrepare && !jsonMode && !analysisMode → omit system prompt entirely.
+            //   (Legacy path, currently unused but kept as safety net.)
+            system: analysisMode
+              ? getAnalysisSystemPrompt(locale)
+              : (skipPrepare && !jsonMode) ? undefined : systemPrompt,
             // Let the server know how many answers exist so it can fire auto_analysis_trigger
             // even when Gemini's truncated JSON omits the analysis_ready field.
             question_count: structuredAnswers.length,
@@ -1270,15 +1274,16 @@ export default function App() {
       try {
         const step1 = await callClaude(buildStep1Messages(structuredAnswers, participant, locale), {
           structuredAnswers,
-          maxTokens: 512,
+          maxTokens: 1024,
           skipPrepare: true,
+          analysisMode: true,
           participant,
         });
         setAnalyzingStatus(t("analyzing.step2"));
         let result = await callClaude(
           buildStep2Messages(structuredAnswers, step1, historyToUse, participant, locale),
-          // 2048 tokens to ensure a full 10-section analysis with all frameworks fits.
-          { structuredAnswers, maxTokens: 2048, skipPrepare: true, participant }
+          // 4096 tokens to ensure a full 10-section analysis with all 5 frameworks fits.
+          { structuredAnswers, maxTokens: 4096, skipPrepare: true, analysisMode: true, participant }
         );
         let analysisResult = normalizeAnalysis(result);
         if (!analysisResult.analysis) {
@@ -1291,7 +1296,7 @@ export default function App() {
                 content: apiT(locale, "api.analysisRetry"),
               },
             ],
-            { structuredAnswers, maxTokens: 2048, skipPrepare: true, participant }
+            { structuredAnswers, maxTokens: 4096, skipPrepare: true, analysisMode: true, participant }
           );
           result = retry;
           analysisResult = normalizeAnalysis(retry);
