@@ -423,6 +423,23 @@ export default async (request) => {
       if (_last >= 0 && _last < text.length - 1) text = text.slice(0, _last + 1);
     }
 
+    // TILTAK 2: Explicit MAX_TOKENS error for analysis calls.
+    // A truncated analysis JSON looks syntactically valid after repairJson closes {}-pairs,
+    // but the "analysis" string is cut mid-sentence. Return 413 so the client retries
+    // cleanly instead of silently accepting a half-written analysis.
+    // Only applies to json_mode (analysis) calls — question calls use useQuestionSchema.
+    if (!useQuestionSchema && body.json_mode && finishReason === "MAX_TOKENS") {
+      console.error("gemini: analyse trunkert (MAX_TOKENS) – sender 413 til klient for retry");
+      return new Response(
+        JSON.stringify({
+          error: "Analysesvaret ble trunkert (token-grense nådd). Prøver igjen.",
+          truncated: true,
+          retry: true,
+        }),
+        { status: 413, headers: { "Content-Type": "application/json", ...corsHeaders() } }
+      );
+    }
+
     if (useQuestionSchema) {
       // Re-strip locally to guarantee clean input regardless of global strip edge cases.
       let t = String(text).trim();

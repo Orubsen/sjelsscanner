@@ -1011,7 +1011,13 @@ export default function App() {
   const { t, locale, systemPrompt } = useI18n();
   let initial = loadState();
 
-  if (initial?.phase === "analyzing" && !initial?.analysis && !initial?.analysisData) {
+  // Reset any in-flight analysis phase to "questions" on reload — the analysis call
+  // is gone so there's no point staying in these transient states.
+  if (
+    (initial?.phase === "analyzing" || initial?.phase === "ready_for_analysis") &&
+    !initial?.analysis &&
+    !initial?.analysisData
+  ) {
     initial = {
       ...initial,
       phase: "questions",
@@ -1193,6 +1199,20 @@ export default function App() {
           }
         }
 
+        // TILTAK 2 (klientsiden): 413 = serveren slo fast at analysen ble trunkert
+        // (MAX_TOKENS). Prøv på nytt med truncatedRetry-melding i stedet for å kaste.
+        if (response.status === 413 && data?.retry === true) {
+          console.warn("[TRUNKERT] 413 MAX_TOKENS – analyse trunkert, retry igjen:", retriesLeft - 1);
+          if (retriesLeft > 0) {
+            return requestOnce(
+              [...apiMessages, { role: "user", content: apiT(locale, "api.truncatedRetry") }],
+              retriesLeft - 1,
+              "truncated",
+              retryAttempt + 1
+            );
+          }
+        }
+
         if (!response.ok) {
           const msg =
             (typeof data?.error === "string" ? data.error : data?.error?.message) ||
@@ -1205,6 +1225,29 @@ export default function App() {
 
         // [DIAG] Logger råteksten frå Gemini før parsing
         console.log("[DIAG] RAW Gemini text (length=" + text.length + "):", text);
+
+        // TILTAK 1: Tidlig retry for trunkerte analyseresponser.
+        // repairJson/parseLlmJson aksepterer avkortet JSON ved å lukke {}-par,
+        // men analyseteksten blir avskåret midt i en setning. Kast her og trigger
+        // retry i stedet for å sende en halvferdig analyse til brukeren.
+        // Defence-in-depth: dekker tilfeller der serveren returnerer 200 med
+        // truncated:true (f.eks. eldre versjon før Tiltak 2 ble deployet).
+        const isTruncated = data?.truncated === true || data?.finishReason === "MAX_TOKENS";
+        if (isTruncated && analysisMode) {
+          console.error(
+            "[TRUNKERT] Analyse-respons trunkert. Råtekst-lengde:", text.length,
+            "– siste 300 tegn:", text.slice(-300)
+          );
+          if (retriesLeft > 0) {
+            return requestOnce(
+              [...apiMessages, { role: "user", content: apiT(locale, "api.truncatedRetry") }],
+              retriesLeft - 1,
+              "truncated",
+              retryAttempt + 1
+            );
+          }
+          throw new Error("Analysen ble avkortet etter alle forsøk. Prøv igjen.");
+        }
 
         const tryParse = () => parseLlmJson(text);
 
@@ -1417,6 +1460,9 @@ export default function App() {
 
   const submitAnswer = useCallback(
     async (answerText, isCustom = false) => {
+      // TILTAK 3: Lås mot ny innsending når analysen allerede er i gang.
+      // Dekker race-condition der bruker klikker mens auto-trigger er i fly.
+      if (phase === "ready_for_analysis" || phase === "analyzing" || phase === "result") return;
       clearError();
       setIsLoading(true);
       setOpinion("");
@@ -1486,10 +1532,29 @@ export default function App() {
         }
 
         if (result.type === "question" && result.question) {
+          // Auto-trigger analysis as soon as LLM signals readiness, instead of
+          // waiting for the user to click "FÅ ANALYSEN NÅ".
+          if (
+            result.analysis_ready &&
+            canSuggestAnalysis(questionNumber, result.analysis_ready)
+          ) {
+            // TILTAK 3: Sett "ready_for_analysis" SYNKRONT før await
+            // slik at UI-et låses umiddelbart og nye svar ikke kan sendes
+            // inn mens analysen er i flyt. triggerAnalysis overstyrer med
+            // "analyzing" med en gang den starter.
+            setPhase("ready_for_analysis");
+            setConversationHistory(updatedHistory);
+            await triggerAnalysis(updatedHistory);
+            return;
+          }
+          // Fallback: if the model returned the exact same question again
+          // (loop/degenerate), force analysis to avoid an infinite cycle.
           if (
             result.question === currentQuestion &&
             canSuggestAnalysis(questionNumber, true)
           ) {
+            setPhase("ready_for_analysis");
+            setConversationHistory(updatedHistory);
             await triggerAnalysis(updatedHistory);
             return;
           }
@@ -1524,6 +1589,7 @@ export default function App() {
       }
     },
     [
+      phase,
       conversationHistory,
       structuredAnswers,
       callClaude,
@@ -1685,6 +1751,25 @@ export default function App() {
           onClearError={clearError}
           metaRemaining={metaRemaining}
         />
+      )}
+      {phase === "ready_for_analysis" && (
+        <div style={{
+          display: "flex", flexDirection: "column", alignItems: "center",
+          justifyContent: "center", minHeight: "70vh", gap: 20,
+        }}>
+          <div style={{
+            fontSize: 10, letterSpacing: 4, color: "var(--accent)",
+            fontFamily: "var(--mono)", textTransform: "uppercase",
+          }}>
+            Analyseberedskap nådd
+          </div>
+          <div style={{
+            fontSize: 11, letterSpacing: 2, color: "var(--dim)",
+            fontFamily: "var(--mono)",
+          }}>
+            Starter analyse…
+          </div>
+        </div>
       )}
       {phase === "analyzing" && (
         <AnalyzingScreen

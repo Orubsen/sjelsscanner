@@ -33,7 +33,10 @@ export function normalizeAnalysis(parsed) {
   }
   return {
     type: "analysis",
-    analysis: parsed.analysis || "",
+    // Accept parsed.report / parsed.full_report as fallback aliases so that a
+    // minor LLM hallucination on the root field name doesn't discard the full
+    // analysis body. Precedence: analysis → report → full_report → "".
+    analysis: parsed.analysis || parsed.report || parsed.full_report || "",
     frameworks: parsed.frameworks || null,
     overall_insight: parsed.overall_insight || "",
     key_themes: Array.isArray(parsed.key_themes) ? parsed.key_themes : [],
