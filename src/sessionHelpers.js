@@ -109,14 +109,20 @@ export function buildLeanQuestionMessages(structuredAnswers, messages, participa
   // Analysis calls (step1/step2) use their own messages with maxDetailed=25.
   const summary = formatStructuredAnswersForApi(structuredAnswers, locale, 3);
 
-  // Take the last 2 messages from the original history. For Q2 this is typically
-  // [assistant: Q1_json, user: Q1_answer], which gives toGeminiContents the data to
-  // produce proper alternating turns (User → Model → User) instead of one merged blob.
-  // Proper turn alternation significantly improves Gemini's JSON schema adherence.
-  // On client retry the tail will be [user: answer, user: retryInstruction] — both
-  // get merged by toGeminiContents, but crucially the original answer is no longer
-  // dropped (fixes the context-loss bug on retry).
-  const tail = (messages || []).slice(-2);
+  // Anchor the tail to the last assistant message and take everything from there.
+  // This gives toGeminiContents [assistant: Q(n-1)_json, user: answer, ...] which
+  // produces proper alternating turns (User → Model → User).
+  //
+  // WHY NOT slice(-2): when the caller appends a retry user message —
+  //   [...messages, retryMsg]
+  // — slice(-2) yields [user: answer, user: retryMsg] (both same role).
+  // toGeminiContents merges them into one blob with NO preceding assistant turn,
+  // stripping Gemini of all Q(n-1) context → incomplete_response on every retry.
+  // lastIndexOf("assistant") anchors to the real Q(n-1) JSON regardless of how
+  // many trailing user messages follow it, so retries work correctly.
+  const msgs = messages || [];
+  const lastAssistantIdx = msgs.map((m) => m.role).lastIndexOf("assistant");
+  const tail = lastAssistantIdx >= 0 ? msgs.slice(lastAssistantIdx) : [];
 
   const out = [
     {
