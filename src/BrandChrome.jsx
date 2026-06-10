@@ -1,128 +1,153 @@
 import { useI18n } from "./i18n/I18nContext.jsx";
 
 const LOGO_SRC = "/rosten-logo.svg";
-const COPYRIGHT_SYMBOL_SRC = "/copyright-symbol.svg";
 
-const watermarkStyle = {
-  position: "fixed",
-  right: 20,
-  bottom: 52,
-  width: 88,
-  height: 88,
-  opacity: 0.07,
-  pointerEvents: "none",
-  zIndex: 50,
-  filter: "grayscale(20%)",
-};
-
-const headerStyle = {
-  position: "fixed",
-  top: 14,
-  right: 16,
-  zIndex: 900,
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  pointerEvents: "none",
-};
-
-const headerLogoStyle = {
-  width: 36,
-  height: 36,
-  opacity: 0.42,
-  filter: "drop-shadow(0 0 12px var(--accent-alpha-15))",
-};
-
-const footerWrapStyle = {
-  position: "fixed",
-  left: 0,
-  right: 0,
-  bottom: 0,
-  zIndex: 900,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: 6,
-  padding: "8px 16px 10px",
-  background: "linear-gradient(to top, rgba(8,10,15,0.95), rgba(8,10,15,0.75))",
-  borderTop: "1px solid var(--border)",
-  fontFamily: "var(--mono)",
-  fontSize: 10,
-  letterSpacing: 1,
-  color: "var(--dim)",
-};
-
-const footerLinkStyle = {
-  color: "var(--dim)",
-  textDecoration: "none",
-  margin: "0 8px",
-  transition: "color 0.15s",
-};
-
+/* ---- BrandWatermark (beholdt for bakoverkompatibilitet) ---- */
 export function BrandWatermark() {
   return (
-    <img src={LOGO_SRC} alt="" aria-hidden style={watermarkStyle} />
+    <img
+      src={LOGO_SRC}
+      alt=""
+      aria-hidden
+      style={{
+        position: "fixed",
+        right: 20,
+        bottom: 52,
+        width: 88,
+        height: 88,
+        opacity: 0.07,
+        pointerEvents: "none",
+        zIndex: 50,
+        filter: "grayscale(20%)",
+      }}
+    />
   );
 }
 
-export function BrandHeader() {
+/* ---- BrandHeader — redesign ---- */
+export function BrandHeader({ onLogo, right }) {
+  const { brand } = useI18n();
   return (
-    <div style={headerStyle} aria-hidden>
-      <img src={LOGO_SRC} alt="" style={headerLogoStyle} />
-    </div>
+    <header
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 40,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "16px var(--pad-x)",
+        background:
+          "linear-gradient(to bottom, rgba(11,8,26,0.92), rgba(11,8,26,0))",
+      }}
+    >
+      <button
+        onClick={onLogo}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          background: "none",
+          border: "none",
+          cursor: onLogo ? "pointer" : "default",
+          padding: 0,
+        }}
+        aria-label="Tilbake til forsiden"
+      >
+        <img src={LOGO_SRC} alt={brand?.name || "Røsten"} style={{ width: 34, height: 34 }} />
+        <span
+          style={{
+            fontFamily: "var(--mono)",
+            fontSize: 13,
+            letterSpacing: "0.32em",
+            color: "var(--fg)",
+            fontWeight: 600,
+          }}
+        >
+          KJERNEKODEN
+        </span>
+      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+        {right}
+      </div>
+    </header>
   );
 }
 
+/* ---- BrandFooter — redesign ---- */
 export function BrandFooter() {
-  const { t, brand } = useI18n();
+  const { brand } = useI18n();
   const year = new Date().getFullYear();
   return (
-    <footer style={footerWrapStyle}>
-      <nav style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 4 }}>
-        <a href="/personvern" style={footerLinkStyle}>
-          {t("footer.privacy")}
+    <footer
+      style={{
+        position: "relative",
+        zIndex: 5,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 8,
+        padding: "26px 16px 30px",
+        borderTop: "1px solid var(--border)",
+        fontFamily: "var(--mono)",
+        fontSize: 10.5,
+        letterSpacing: "0.12em",
+        color: "var(--dim)",
+        background: "var(--bg-2)",
+      }}
+    >
+      <nav
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: 22,
+        }}
+      >
+        <a href="/personvern" style={{ color: "var(--dim)", textDecoration: "none" }}>
+          PERSONVERN
         </a>
-        <a href={`mailto:${brand.contactEmail}`} style={footerLinkStyle}>
-          {t("footer.contact")}
+        <a
+          href={`mailto:${brand?.contactEmail || "kontakt@rubenrøsten.no"}`}
+          style={{ color: "var(--dim)", textDecoration: "none" }}
+        >
+          KONTAKT
         </a>
-        {brand.websiteUrl ? (
-          <a href={brand.websiteUrl} style={footerLinkStyle} target="_blank" rel="noopener noreferrer">
-            {t("contact.website")}
+        {brand?.websiteUrl && (
+          <a
+            href={brand.websiteUrl}
+            style={{ color: "var(--dim)", textDecoration: "none" }}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            RUBENRØSTEN.NO
           </a>
-        ) : null}
-        <a href="tel:116123" style={footerLinkStyle}>
-          {t("footer.crisis")}
+        )}
+        <a href="tel:116123" style={{ color: "var(--gold-soft)", textDecoration: "none" }}>
+          KRISE 116 123
         </a>
       </nav>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <img
-          src={COPYRIGHT_SYMBOL_SRC}
-          alt=""
-          width={14}
-          height={14}
-          style={{ opacity: 0.85, flexShrink: 0 }}
-          aria-hidden
-        />
-        <span className="brand-footer-text">
-          {year} {brand.company}. {t("brand.rightsReserved")}
-        </span>
-      </div>
+      <span style={{ color: "var(--dim-2)" }}>
+        © {year} {brand?.company || "RØSTEN ENT"}. ALLE RETTIGHETER RESERVERT.
+      </span>
     </footer>
   );
 }
 
+/* ---- IntroBrandMark (beholdt for eksisterende IntroScreen) ---- */
 export function IntroBrandMark() {
   const { brand } = useI18n();
   return (
     <img
       src={LOGO_SRC}
-      alt={brand.name}
+      alt={brand?.name || "Røsten"}
       style={{
-        width: 56,
-        height: 56,
-        marginBottom: 20,
-        opacity: 0.85,
-        filter: "drop-shadow(0 0 20px var(--accent-alpha-25))",
+        width: 60,
+        height: 60,
+        marginBottom: 24,
+        filter: "drop-shadow(0 0 24px var(--accent-alpha-25))",
       }}
     />
   );

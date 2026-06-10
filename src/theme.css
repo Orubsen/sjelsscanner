@@ -1,38 +1,55 @@
 /* -----------------------------------------------------------------------
- * F3 – Designsystem-variabler. Definert éin gong her, tilgjengelig overalt.
+ * Designsystem – dyp lilla corporate-scientific (IQVIA-inspirert).
+ * Indigo aksent fra eksisterende system, gull-aksent fra Røsten-logoen.
  * ----------------------------------------------------------------------- */
 :root {
-  /* Bakgrunnar og overflater */
-  --bg: #080a0f;
-  --surface: #0d1117;
-  --border: #1c2230;
+  /* Overflater — dyp violet-svart, lav kroma */
+  --bg: #0b081a;
+  --bg-2: #0e0b21;
+  --surface: #141029;
+  --surface-2: #1a1535;
+  --border: #251e45;
+  --border-soft: rgba(129, 140, 248, 0.14);
 
   /* Tekst */
-  --fg: #e2e8f0;
-  --fg-soft: #a8b4c4;
-  --dim: #4a5568;
-  --dim-2: #2d3748;
+  --fg: #e6e4f2;
+  --fg-soft: #aaa6c8;
+  --dim: #5d5884;
+  --dim-2: #353055;
 
-  /* Aksent */
+  /* Aksent — eksisterende indigo */
   --accent: #818cf8;
+  --accent-bright: #a5b0ff;
+  --accent-alpha-08: rgba(129, 140, 248, 0.08);
+  --accent-alpha-10: rgba(129, 140, 248, 0.10);
+  --accent-alpha-15: rgba(129, 140, 248, 0.15);
+  --accent-alpha-25: rgba(129, 140, 248, 0.25);
+  /* Legacy alias */
+  --accent-alpha: rgba(129, 140, 248, 0.15);
+  --accent-dim: rgba(129, 140, 248, 0.45);
 
-  /* F2 – Feilfarger (valideringsfeil, admin-feil) */
+  /* Brand gull — fra Røsten-logoen. Brukes sparsomt. */
+  --gold: #c5a368;
+  --gold-soft: rgba(197, 163, 104, 0.55);
+  --gold-alpha-12: rgba(197, 163, 104, 0.12);
+
+  /* Status */
   --error: #f87171;
   --error-soft: #fecaca;
+  --ok: #6ee7b7;
 
-  /* F2 – Kriselinje-farger (CrisisHelpBox) */
+  /* Kriselinje */
   --crisis: #fca5a5;
   --crisis-border: rgba(248, 113, 113, 0.35);
   --crisis-bg: rgba(248, 113, 113, 0.06);
 
-  /* F2 – Aksent med transparens (hover, aktiv bakgrunn, skyggar) */
-  --accent-alpha-10: rgba(129, 140, 248, 0.10);
-  --accent-alpha-15: rgba(129, 140, 248, 0.15);
-  --accent-alpha-25: rgba(129, 140, 248, 0.25);
-
   /* Typografi */
   --mono: 'IBM Plex Mono', monospace;
   --body: 'Crimson Pro', serif;
+  --display: 'Cormorant Garamond', 'Crimson Pro', serif;
+
+  /* Responsiv horisontal luft */
+  --pad-x: clamp(18px, 5vw, 32px);
 }
 
 /* Base-stiler som gjeld alle sider */
@@ -42,11 +59,12 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
   background: var(--bg);
   color: var(--fg);
   min-height: 100vh;
-  padding-bottom: 64px;
+  font-family: var(--body);
+  -webkit-font-smoothing: antialiased;
 }
 
 input, textarea, select {
@@ -57,8 +75,181 @@ a {
   color: var(--accent);
 }
 
-/* Typewriter-cursor-animasjon – her i theme.css so den alltid lastar (ikkje berre
- * når App.jsx sin inline <style> er injisert). Flytta frå App.jsx inline style. */
+button { font-family: var(--mono); }
+
+::selection { background: var(--accent-alpha-25); }
+
+/* -----------------------------------------------------------------------
+ * KK – Redesign utility-klasser
+ * ----------------------------------------------------------------------- */
+
+/* Mono-etikett */
+.kk-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+/* Primær CTA */
+.kk-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--accent);
+  color: #0b081a;
+  border: 1px solid var(--accent);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  padding: 16px 34px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+}
+.kk-btn-primary:hover {
+  background: var(--accent-bright);
+  border-color: var(--accent-bright);
+  box-shadow: 0 0 32px var(--accent-alpha-25);
+}
+.kk-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+/* Ghost-knapp */
+.kk-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: transparent;
+  color: var(--fg-soft);
+  border: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  padding: 14px 26px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+}
+.kk-btn-ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-alpha-08);
+}
+
+/* Svaralternativ-knapper */
+.kk-option {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  width: 100%;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.5;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+.kk-option:hover {
+  border-color: var(--accent);
+  background: var(--accent-alpha-08);
+  transform: translateX(4px);
+}
+.kk-option .kk-option-key {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+}
+
+/* Inndatafelt */
+.kk-field {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-size: 17px;
+  padding: 13px 16px;
+  transition: border-color 0.18s ease;
+}
+.kk-field::placeholder { color: var(--dim); }
+.kk-field:focus { outline: none; border-color: var(--accent); }
+
+/* Kort */
+.kk-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 28px;
+}
+
+/* Hårlinje-skillelinje */
+.kk-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.kk-divider::before, .kk-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Fade-opp inngangsanimasjon — synlig er GRUNNSTIL, animasjonen er tillegg */
+.kk-rise { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  .kk-anim-ready .kk-rise { animation: kk-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+  .kk-anim-ready .kk-rise-1 { animation-delay: 0.08s; }
+  .kk-anim-ready .kk-rise-2 { animation-delay: 0.18s; }
+  .kk-anim-ready .kk-rise-3 { animation-delay: 0.30s; }
+  .kk-anim-ready .kk-rise-4 { animation-delay: 0.44s; }
+}
+@keyframes kk-rise {
+  from { transform: translateY(14px); }
+  to   { transform: translateY(0); }
+}
+
+/* Skimrende gradient-tekst */
+.kk-shimmer, .kk-shimmer-accent, .kk-shimmer-gold {
+  background-size: 220% 100%;
+  background-position: 0% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.kk-shimmer {
+  background-image: linear-gradient(110deg,
+    var(--fg) 0%, var(--fg) 38%, var(--accent-bright) 50%, var(--fg) 62%, var(--fg) 100%);
+}
+.kk-shimmer-accent {
+  background-image: linear-gradient(110deg,
+    var(--accent) 0%, var(--accent) 36%, #e8e6ff 50%, var(--accent) 64%, var(--accent) 100%);
+}
+.kk-shimmer-gold {
+  background-image: linear-gradient(110deg,
+    var(--gold) 0%, var(--gold) 36%, #f3e3c0 50%, var(--gold) 64%, var(--gold) 100%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kk-shimmer { animation: kk-sweep 8s linear infinite; }
+  .kk-shimmer-accent { animation: kk-sweep 6.5s linear infinite; }
+  .kk-shimmer-gold { animation: kk-sweep 7.5s linear infinite; }
+}
+@keyframes kk-sweep {
+  0% { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
+
+/* Typewriter-cursor */
+@keyframes kk-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.kk-cursor { animation: kk-blink 1s infinite; color: var(--accent); }
+
+/* Legacy typewriter-cursor (brukes i eksisterende App.jsx-skjermer) */
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 .cursor { animation: blink 1s infinite; }
 
