@@ -337,7 +337,9 @@ export default async (request) => {
       // Override maxOutputTokens for analysis: use client value capped at 8192.
       // A full analysis JSON (10 ## sections + 5 frameworks) is ~6000-7000 tokens.
       // Cap raised from 6000 to 8192 to accommodate complete output.
-      generationConfig.maxOutputTokens = Math.min(body.max_tokens ?? 512, 8192);
+      // Cap at 6000 for analysis calls (expanded system prompt + 13 sections fits in ~5500 tokens).
+      // 8192 caused 504 Gateway Timeout on Netlify Pro (26s limit) with the new system prompt.
+      generationConfig.maxOutputTokens = Math.min(body.max_tokens ?? 512, 6000);
       // Apply analysis response schema when requested (body.analysis_schema === true).
       // The schema enforces "analysis" and "frameworks" fields that Gemini otherwise omits
       // in favour of custom fields like forensic_flags / dark_triad_assessment.

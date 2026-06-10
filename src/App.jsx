@@ -1299,9 +1299,11 @@ export default function App() {
       try {
         let result = await callClaude(
           buildDirectAnalysisMessages(structuredAnswers, historyToUse, participant, locale),
-          // 8192 tokens: full analysis JSON (10 ## sections + 5 frameworks) is ~6000-7000
-          // tokens. Server caps at 8192. Raised from 6000 to accommodate complete output.
-          { structuredAnswers, maxTokens: 8192, skipPrepare: true, analysisMode: true, participant }
+          // 6000 tokens: 13 ## sections (Observasjon/Tolkning/Usikkerhet) + 5 frameworks
+          // fits comfortably in ~4000-5500 tokens. Cap at 6000 to stay well within
+          // Netlify Pro's 26-second function timeout. 8192 caused 504s with the
+          // expanded system prompt (Winnicott/Kohut/Bion + 3 new sections).
+          { structuredAnswers, maxTokens: 6000, skipPrepare: true, analysisMode: true, participant }
         );
         let analysisResult = normalizeAnalysis(result);
         if (!analysisResult.analysis) {
@@ -1314,7 +1316,7 @@ export default function App() {
                 content: apiT(locale, "api.analysisRetry"),
               },
             ],
-            { structuredAnswers, maxTokens: 8192, skipPrepare: true, analysisMode: true, participant }
+            { structuredAnswers, maxTokens: 6000, skipPrepare: true, analysisMode: true, participant }
           );
           result = retry;
           analysisResult = normalizeAnalysis(retry);
