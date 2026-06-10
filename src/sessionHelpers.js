@@ -27,6 +27,8 @@ export function normalizeAnalysis(parsed) {
       short_summary: "",
       conflicts: [],
       clinical_followup: "",
+      affective_temperature: "",
+      diagnostic_confidence: "",
     };
   }
   return {
@@ -38,6 +40,14 @@ export function normalizeAnalysis(parsed) {
     short_summary: parsed.short_summary || "",
     conflicts: Array.isArray(parsed.conflicts) ? parsed.conflicts : [],
     clinical_followup: parsed.clinical_followup || "",
+    // v2 fields (meta-prompt expansion)
+    affective_temperature: parsed.affective_temperature || "",
+    diagnostic_confidence: parsed.diagnostic_confidence || "",
+    // Pass-through optional legacy fields
+    forensic_flags: Array.isArray(parsed.forensic_flags) ? parsed.forensic_flags : [],
+    dark_triad_assessment: parsed.dark_triad_assessment || null,
+    object_relations_level: parsed.object_relations_level || "",
+    mentalization_capacity: parsed.mentalization_capacity || "",
   };
 }
 

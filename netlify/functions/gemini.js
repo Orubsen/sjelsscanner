@@ -25,9 +25,15 @@ function corsHeaders() {
 /**
  * JSON Schema for analysis-phase responses.
  * Used when body.analysis_schema === true (direct analysis call, no step1).
- * Enforces the presence of "analysis" (10 ## sections) and "frameworks" (5 keys)
+ * Enforces the presence of "analysis" (13 ## sections) and "frameworks" (5 keys)
  * which Gemini otherwise tends to omit in favour of custom fields like
  * forensic_flags / dark_triad_assessment that normalizeAnalysis cannot handle.
+ *
+ * New fields (meta-prompt v2):
+ *   affective_temperature — emotional intensity across answers (kald/nøytral/varm/overopphetet)
+ *   diagnostic_confidence — triangulation quality rating (lav/moderat/høy + reason)
+ * New analysis sections (13 total):
+ *   OVERFØRING OG MOTOVERFØRING, RISIKOVURDERING, RESSURSER OG MOTSTANDSKRAFT
  */
 const ANALYSIS_RESPONSE_SCHEMA = {
   type: "object",
@@ -38,9 +44,17 @@ const ANALYSIS_RESPONSE_SCHEMA = {
     key_themes: { type: "array", items: { type: "string" } },
     conflicts: { type: "array", items: { type: "string" } },
     clinical_followup: { type: "string" },
+    affective_temperature: {
+      type: "string",
+      description: "Emotional temperature across answers: kald/nøytral/varm/overopphetet + observasjon",
+    },
+    diagnostic_confidence: {
+      type: "string",
+      description: "Triangulation quality: lav/moderat/høy + begrunnelse (hvilke hypoteser er triangulert vs. enkeltobservasjoner)",
+    },
     analysis: {
       type: "string",
-      description: "Full psychoanalytic analysis with all 10 required ## headings, each containing Observasjon/Tolkning/Usikkerhet blocks",
+      description: "Full psychoanalytic analysis with all 13 required ## headings (10 original + OVERFØRING OG MOTOVERFØRING, RISIKOVURDERING, RESSURSER OG MOTSTANDSKRAFT), each containing Observasjon/Tolkning/Usikkerhet blocks. Every Tolkning claim must cite [Q{n}] or be marked [strukturell hypotese]. Usikkerhet must contain a concrete limitation.",
     },
     frameworks: {
       type: "object",
@@ -104,7 +118,7 @@ const ANALYSIS_RESPONSE_SCHEMA = {
       required: ["attachment", "defense_mechanisms", "jungian_archetypes", "freudian_analysis", "ace_impact"],
     },
   },
-  required: ["type", "short_summary", "overall_insight", "key_themes", "conflicts", "clinical_followup", "analysis", "frameworks"],
+  required: ["type", "short_summary", "overall_insight", "key_themes", "conflicts", "clinical_followup", "affective_temperature", "diagnostic_confidence", "analysis", "frameworks"],
 };
 
 /** JSON Schema for mapping-phase responses — inlined (not a separate functions file). */
