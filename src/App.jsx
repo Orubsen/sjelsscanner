@@ -1124,11 +1124,14 @@ export default function App() {
             json_mode: jsonMode,
             json_schema: jsonMode ? "question" : undefined,
             temperature: jsonMode ? 0.35 : undefined,
-            // For analysis calls (skipPrepare), omit the question-mode system prompt —
-            // it says "STRICTLY IN QUESTION/MAPPING MODE" which overrides step1/step2
-            // instructions and causes Gemini to return {"type":"question"} instead of
-            // {"type":"internal_summary"} / {"type":"analysis"}.
-            system: skipPrepare ? undefined : systemPrompt,
+            // For analysis calls (skipPrepare WITHOUT jsonMode), omit the question-mode
+            // system prompt — it says "STRICTLY IN QUESTION/MAPPING MODE" which overrides
+            // step1/step2 instructions and causes Gemini to return {"type":"question"}.
+            // IMPORTANT: keep system prompt when jsonMode=true (e.g. startAnalysis init
+            // call uses skipPrepare:true + jsonMode:true and NEEDS the system prompt to
+            // generate question 1 correctly — without it Gemini sets analysis_ready:true
+            // at Q1 and sometimes returns missing options, causing repeated 502 errors).
+            system: (skipPrepare && !jsonMode) ? undefined : systemPrompt,
             // Let the server know how many answers exist so it can fire auto_analysis_trigger
             // even when Gemini's truncated JSON omits the analysis_ready field.
             question_count: structuredAnswers.length,
@@ -1629,53 +1632,4 @@ export default function App() {
           savedSession={savedSession}
           onResume={resumeSession}
           onDiscard={discardAndStart}
-          initialParticipant={participant?.name ? participant : null}
-          isStarting={isLoading && phase === "intro"}
-        />
-      )}
-      {phase === "questions" && (
-        <QuestionScreen
-          question={currentQuestion}
-          category={currentCategory}
-          options={currentOptions}
-          questionNumber={questionNumber}
-          maxQuestions={MAX_QUESTIONS}
-          coveredCategoryIds={coveredCategoryIds}
-          analysisReady={analysisReady}
-          readinessNote={readinessNote}
-          onAnswer={handleAnswer}
-          onCustomAnswer={handleCustomAnswer}
-          onAskOpinion={handleAskOpinion}
-          onRephrase={handleRephrase}
-          onForceAnalysis={() => triggerAnalysis(conversationHistory)}
-          isLoading={isLoading}
-          opinion={opinion}
-          onCloseOpinion={() => setOpinion("")}
-          askError={askError}
-          onClearAskError={() => setAskError("")}
-          error={error}
-          onClearError={clearError}
-          metaRemaining={metaRemaining}
-        />
-      )}
-      {phase === "analyzing" && (
-        <AnalyzingScreen
-          error={error}
-          onClearError={clearError}
-          onForceAnalysis={() => triggerAnalysis(conversationHistory)}
-          analyzingStatus={analyzingStatus}
-          answerCount={structuredAnswers.length}
-        />
-      )}
-      {phase === "result" && (
-        <AnalysisScreen
-          analysis={analysis}
-          analysisData={analysisData}
-          structuredAnswers={structuredAnswers}
-          participant={participant?.name ? participant : null}
-          onRestart={restart}
-        />
-      )}
-    </div>
-  );
-}
+          initialParticipant={participant?.name ? participant : nu

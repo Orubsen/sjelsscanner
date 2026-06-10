@@ -168,46 +168,4 @@ ANALYSIS FORMAT (required structure):
 {
   "type":"analysis",
   "short_summary":"3-5 sentences for sharing",
-  "overall_insight":"1-2 paragraphs",
-  "key_themes":["theme1","theme2"],
-  "conflicts":["describe contradictory answers if found"],
-  "clinical_followup":"What a clinician would typically explore further (not advice, direction)",
-  "analysis":"full text with ## headings (see below)",
-  "frameworks":{
-    "attachment":{"summary":"...","key_patterns":["..."],"evidence_from_answers":"...","quote":"short quote from user answer","question_index":7},
-    "defense_mechanisms":{ "...": "..." },
-    "jungian_archetypes":{ "...": "..." },
-    "freudian_analysis":{ "...": "..." },
-    "ace_impact":{ "...": "..." }
-  }
-}
-
-frameworks is MANDATORY with all 5 keys. Each MUST have evidence_from_answers, quote (verbatim from user), question_index (integer).
-
-In each ## section in "analysis", use exactly this structure:
-**${obsLabel}:** (only what user said / implied)
-**${tolLabel}:** (psychological reading, mark as hypothesis where relevant)
-**${uskLabel}:** (where data is thin)
-
-Required headings in analysis (all required):
-${m.headers.map((h) => `## ${h}`).join("\n")}
-
-CATEGORY LIST (id → name):
-${categoryNames.map((n, i) => `${i + 1}. ${n}`).join("\n")}
-
-Ask one question at a time. Four options should cover distinct psychological positions.`;
-}
-
-export function getSystemPrompt(locale) {
-  return buildSystemPrompt(locale);
-}
-
-export function getAnalysisStep1(locale) {
-  const loc = locale === "nn" || locale === "en" ? locale : "nb";
-  return PROMPT_META[loc].step1;
-}
-
-export function getAnalysisStep2(locale) {
-  const loc = locale === "nn" || locale === "en" ? locale : "nb";
-  return PROMPT_META[loc].step2;
-}
+  "over
