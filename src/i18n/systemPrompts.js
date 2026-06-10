@@ -20,14 +20,18 @@ const PROMPT_META = {
       "UBEHAGELIGE SANNHETER",
       "KLINISK VIDERE UTFORSKING",
     ],
-    step1: `[STEG 1 — INTERN KOMPIMERING]
+    step1: `[ANALYSE-MODUS AKTIV — OVERSTYR MAPPING PHASE. Du er nå bedt om intern oppsummering, IKKE spørsmål. Returner JSON med type:"internal_summary".]
+
 Lag en strukturert intern oppsummering av alle svar (JSON type:"internal_summary").
 Felter: summary_text (punktliste), conflicts (array), categories_covered (array av id 1-15), data_gaps (array).
-Ikke skriv sluttrapport ennå.`,
-    step2: `[STEG 2 — SLUTTRAPPORT]
-Generer full analysis JSON nå (se format i systeminstruks).
+Ikke skriv sluttrapport ennå. Returner KUN JSON — ingen tekst utenfor JSON.`,
+    step2: `[ANALYSE-MODUS AKTIV — OVERSTYR MAPPING PHASE. Du er nå bedt om full analyse-JSON, IKKE et spørsmål.]
+
+Generer full analysis JSON nå (se ANALYSIS FORMAT i systeminstruks).
 Bruk intern oppsummering + alle svar. frameworks obligatorisk med quote og question_index.
-Nevn motstridende svar i ## SPENNINGER OG MOTSTRIDENDE SVAR og i conflicts-feltet.`,
+Nevn motstridende svar i ## SPENNINGER OG MOTSTRIDENDE SVAR og i conflicts-feltet.
+ALLE obligatoriske felt MÅ være med: type, short_summary, overall_insight, key_themes, conflicts, clinical_followup, analysis (med alle 10 ##-seksjoner), frameworks (alle 5 rammeverk med evidence_from_answers, quote, question_index).
+Returner KUN JSON — ingen tekst utenfor JSON.`,
   },
   nn: {
     role: "Du er ein avansert psykoanalytisk AI i Røsten Kjernekoden.",
@@ -47,14 +51,18 @@ Nevn motstridende svar i ## SPENNINGER OG MOTSTRIDENDE SVAR og i conflicts-felte
       "UBEhagelege SANNINGAR",
       "KLINISK VIDARE UTFORSKING",
     ],
-    step1: `[STEG 1 — INTERN KOMPIMERING]
+    step1: `[ANALYSE-MODUS AKTIV — OVERSTYR MAPPING PHASE. Du er no beden om intern oppsummering, IKKJE spørsmål. Returner JSON med type:"internal_summary".]
+
 Lag ei strukturert intern oppsummering av alle svar (JSON type:"internal_summary").
 Felt: summary_text (punktliste), conflicts (array), categories_covered (array av id 1-15), data_gaps (array).
-Ikkje skriv sluttrapport enno.`,
-    step2: `[STEG 2 — SLUTTRAPPORT]
-Generer full analysis JSON no (sjå format i systeminstruks).
+Ikkje skriv sluttrapport enno. Returner KUN JSON — ingen tekst utanfor JSON.`,
+    step2: `[ANALYSE-MODUS AKTIV — OVERSTYR MAPPING PHASE. Du er no beden om full analyse-JSON, IKKJE eit spørsmål.]
+
+Generer full analysis JSON no (sjå ANALYSIS FORMAT i systeminstruks).
 Bruk intern oppsummering + alle svar. frameworks obligatorisk med quote og question_index.
-Nemn motstridande svar i ## SPENNINGAR OG MOTSTRIDANDE SVAR og i conflicts-feltet.`,
+Nemn motstridande svar i ## SPENNINGAR OG MOTSTRIDANDE SVAR og i conflicts-feltet.
+ALLE obligatoriske felt MÅ vere med: type, short_summary, overall_insight, key_themes, conflicts, clinical_followup, analysis (med alle 10 ##-seksjonar), frameworks (alle 5 rammeverk med evidence_from_answers, quote, question_index).
+Returner KUN JSON — ingen tekst utanfor JSON.`,
   },
   en: {
     role: "You are an advanced psychoanalytic AI in Røsten Kjernekoden.",
@@ -74,14 +82,18 @@ Nemn motstridande svar i ## SPENNINGAR OG MOTSTRIDANDE SVAR og i conflicts-felte
       "UNCOMFORTABLE TRUTHS",
       "CLINICAL FOLLOW-UP",
     ],
-    step1: `[STEP 1 — INTERNAL COMPRESSION]
+    step1: `[ANALYSIS MODE ACTIVE — OVERRIDE MAPPING PHASE. You are now asked for an internal summary, NOT a question. Return JSON with type:"internal_summary".]
+
 Create a structured internal summary of all answers (JSON type:"internal_summary").
 Fields: summary_text (bullet list), conflicts (array), categories_covered (array of ids 1-15), data_gaps (array).
-Do not write the final report yet.`,
-    step2: `[STEP 2 — FINAL REPORT]
-Generate full analysis JSON now (see format in system instructions).
+Do not write the final report yet. Return ONLY JSON — no text outside JSON.`,
+    step2: `[ANALYSIS MODE ACTIVE — OVERRIDE MAPPING PHASE. You are now asked for full analysis JSON, NOT a question.]
+
+Generate full analysis JSON now (see ANALYSIS FORMAT in system instructions).
 Use internal summary + all answers. frameworks mandatory with quote and question_index.
-Mention contradictory answers in ## TENSIONS AND CONTRADICTORY ANSWERS and in the conflicts field.`,
+Mention contradictory answers in ## TENSIONS AND CONTRADICTORY ANSWERS and in the conflicts field.
+ALL mandatory fields MUST be present: type, short_summary, overall_insight, key_themes, conflicts, clinical_followup, analysis (with all 10 ## sections), frameworks (all 5 frameworks with evidence_from_answers, quote, question_index).
+Return ONLY JSON — no text outside JSON.`,
   },
 };
 

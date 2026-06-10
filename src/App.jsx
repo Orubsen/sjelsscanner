@@ -1124,7 +1124,14 @@ export default function App() {
             json_mode: jsonMode,
             json_schema: jsonMode ? "question" : undefined,
             temperature: jsonMode ? 0.35 : undefined,
-            system: systemPrompt,
+            // For analysis calls (skipPrepare), omit the question-mode system prompt —
+            // it says "STRICTLY IN QUESTION/MAPPING MODE" which overrides step1/step2
+            // instructions and causes Gemini to return {"type":"question"} instead of
+            // {"type":"internal_summary"} / {"type":"analysis"}.
+            system: skipPrepare ? undefined : systemPrompt,
+            // Let the server know how many answers exist so it can fire auto_analysis_trigger
+            // even when Gemini's truncated JSON omits the analysis_ready field.
+            question_count: structuredAnswers.length,
             messages: prepared,
           }),
           signal: controller.signal,
@@ -1267,7 +1274,8 @@ export default function App() {
         setAnalyzingStatus(t("analyzing.step2"));
         let result = await callClaude(
           buildStep2Messages(structuredAnswers, step1, historyToUse, participant, locale),
-          { structuredAnswers, maxTokens: 1024, skipPrepare: true, participant }
+          // 2048 tokens to ensure a full 10-section analysis with all frameworks fits.
+          { structuredAnswers, maxTokens: 2048, skipPrepare: true, participant }
         );
         let analysisResult = normalizeAnalysis(result);
         if (!analysisResult.analysis) {
@@ -1280,7 +1288,7 @@ export default function App() {
                 content: apiT(locale, "api.analysisRetry"),
               },
             ],
-            { structuredAnswers, maxTokens: 1024, skipPrepare: true, participant }
+            { structuredAnswers, maxTokens: 2048, skipPrepare: true, participant }
           );
           result = retry;
           analysisResult = normalizeAnalysis(retry);

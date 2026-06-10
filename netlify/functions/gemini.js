@@ -204,6 +204,9 @@ export default async (request) => {
       temperature: body.temperature ?? 0.7,
     };
     const useQuestionSchema = body.json_schema === "question";
+    // Client passes this so the server knows when analysis is appropriate
+    // even if Gemini's truncated JSON omits the analysis_ready field.
+    const clientQuestionCount = Number(body.question_count) || 0;
     if (useQuestionSchema) {
       generationConfig.responseMimeType = "application/json";
       generationConfig.responseSchema = QUESTION_RESPONSE_SCHEMA;
@@ -362,10 +365,12 @@ export default async (request) => {
           const retryInstruction =
             "[CRITICAL ERROR / KRITISK FEIL: options missing. Return ONE valid JSON object — same question, same questionNumber — but NOW include EXACTLY 4 non-empty concrete answer strings in the \"options\" array. Example: {\"type\":\"question\",\"question\":\"...\",\"category\":\"...\",\"questionNumber\":8,\"options\":[\"A. ...\",\"B. ...\",\"C. ...\",\"D. ...\"],\"categories_covered\":[],\"missing_categories\":[],\"analysis_ready\":false,\"readiness_note\":\"\"}. JSON only, no other text.]";
 
-          // If Gemini signals analysis_ready without options, honour its intent:
-          // return a trigger so the client starts the analysis flow immediately.
-          if (parsedCheck.analysis_ready === true) {
-            console.log("gemini: analysis_ready=true utan options – sender auto_analysis_trigger");
+          // If Gemini signals analysis_ready OR the client has >= 15 answers (all categories
+          // covered), honour the intent by returning auto_analysis_trigger.
+          // Note: at Q15+, Gemini's truncated JSON often omits analysis_ready entirely —
+          // we rely on clientQuestionCount to detect this case reliably.
+          if (parsedCheck.analysis_ready === true || clientQuestionCount >= 15) {
+            console.log("gemini: auto_analysis_trigger – analysis_ready=", parsedCheck.analysis_ready, "clientQuestionCount=", clientQuestionCount);
             return new Response(
               JSON.stringify({
                 content: [{ type: "text", text: JSON.stringify({ type: "auto_analysis_trigger", analysis_ready: true }) }],
@@ -393,9 +398,9 @@ export default async (request) => {
               // responseSchema intentionally omitted
             },
           };
-          // Tight timeout for server-side retry: 7s leaves room within the 10s function limit.
+          // Tight timeout for server-side retry: 4s leaves room within the 10s function limit.
           const retrySignal = typeof AbortSignal !== "undefined" && AbortSignal.timeout
-            ? AbortSignal.timeout(7000)
+            ? AbortSignal.timeout(4000)
             : undefined;
 
           let retryOk = false;
