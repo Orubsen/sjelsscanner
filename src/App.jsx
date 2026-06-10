@@ -29,6 +29,7 @@ import {
   parseSectionBlocks,
 } from "./sessionHelpers.js";
 import { BrandWatermark, BrandHeader, BrandFooter, IntroBrandMark } from "./BrandChrome.jsx";
+import { Landing } from "./Landing.jsx";
 import {
   EMPTY_PARTICIPANT,
   validateParticipant,
@@ -1026,7 +1027,7 @@ export default function App() {
     };
   }
 
-  const [phase, setPhase] = useState(initial?.phase || "intro");
+  const [phase, setPhase] = useState(initial ? (initial.phase || "intro") : "landing");
   const [conversationHistory, setConversationHistory] = useState(initial?.conversationHistory || []);
   const [structuredAnswers, setStructuredAnswers] = useState(initial?.structuredAnswers || []);
   const [coveredCategoryIds, setCoveredCategoryIds] = useState(initial?.coveredCategoryIds || []);
@@ -1693,30 +1694,29 @@ export default function App() {
   };
 
   return (
-    <div className="app-root">
+    <div className={phase === "landing" ? undefined : "app-root"}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&family=Bebas+Neue&display=swap');
-        :root {
-          --bg: #080a0f; --surface: #0d1117; --border: #1c2230;
-          --fg: #e2e8f0; --fg-soft: #a8b4c4;
-          --dim: #4a5568; --dim-2: #2d3748;
-          --accent: #818cf8; --accent-dim: rgba(129,140,248,0.3);
-          --mono: 'IBM Plex Mono', monospace;
-          --body: 'Crimson Pro', serif;
-          --display: 'Bebas Neue', sans-serif;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg); color: var(--fg); min-height: 100vh; padding-bottom: 64px; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: var(--bg); }
         ::-webkit-scrollbar-thumb { background: var(--border); }
-        input::placeholder { color: var(--dim-2); }
-        button:disabled { opacity: 0.4; }
       `}</style>
-      <ScanlineOverlay />
-      <BrandWatermark />
-      <BrandHeader />
-      <BrandFooter />
+      {phase === "landing" && (
+        <>
+          <BrandHeader right={<LanguageSwitcher />} />
+          <Landing onStart={() => setPhase("intro")} />
+        </>
+      )}
+      {phase !== "landing" && (
+        <>
+          <ScanlineOverlay />
+          <BrandWatermark />
+          <BrandHeader
+            onLogo={phase === "intro" ? () => setPhase("landing") : undefined}
+            right={<LanguageSwitcher />}
+          />
+          <BrandFooter />
+        </>
+      )}
       {phase === "intro" && (
         <IntroScreen
           onStart={startAnalysis}
