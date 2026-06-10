@@ -1632,4 +1632,53 @@ export default function App() {
           savedSession={savedSession}
           onResume={resumeSession}
           onDiscard={discardAndStart}
-          initialParticipant={participant?.name ? participant : nu
+          initialParticipant={participant?.name ? participant : null}
+          isStarting={isLoading && phase === "intro"}
+        />
+      )}
+      {phase === "questions" && (
+        <QuestionScreen
+          question={currentQuestion}
+          category={currentCategory}
+          options={currentOptions}
+          questionNumber={questionNumber}
+          maxQuestions={MAX_QUESTIONS}
+          coveredCategoryIds={coveredCategoryIds}
+          analysisReady={analysisReady}
+          readinessNote={readinessNote}
+          onAnswer={handleAnswer}
+          onCustomAnswer={handleCustomAnswer}
+          onAskOpinion={handleAskOpinion}
+          onRephrase={handleRephrase}
+          onForceAnalysis={() => triggerAnalysis(conversationHistory)}
+          isLoading={isLoading}
+          opinion={opinion}
+          onCloseOpinion={() => setOpinion("")}
+          askError={askError}
+          onClearAskError={() => setAskError("")}
+          error={error}
+          onClearError={clearError}
+          metaRemaining={metaRemaining}
+        />
+      )}
+      {phase === "analyzing" && (
+        <AnalyzingScreen
+          error={error}
+          onClearError={clearError}
+          onForceAnalysis={() => triggerAnalysis(conversationHistory)}
+          analyzingStatus={analyzingStatus}
+          answerCount={structuredAnswers.length}
+        />
+      )}
+      {phase === "result" && (
+        <AnalysisScreen
+          analysis={analysis}
+          analysisData={analysisData}
+          structuredAnswers={structuredAnswers}
+          participant={participant?.name ? participant : null}
+          onRestart={restart}
+        />
+      )}
+    </div>
+  );
+}
