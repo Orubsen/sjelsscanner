@@ -218,6 +218,15 @@ export default async (request) => {
       // temperature=0 on retries: fully deterministic → better schema adherence.
       // temperature=0.35 on first attempt: enough creativity for diverse questions.
       generationConfig.temperature = clientRetryAttempt > 0 ? 0 : 0.35;
+      // Disable thinking for schema-mode question calls.
+      // Gemini 2.5 Flash thinking tokens count toward maxOutputTokens. If the model
+      // "thinks" for 1500+ tokens, only ~500 remain for the actual JSON — not enough
+      // to reliably generate all 4 options. Disabling thinking makes schema adherence
+      // faster and more reliable. Question JSON doesn't benefit from deep reasoning.
+      generationConfig.thinkingConfig = { thinkingBudget: 0 };
+      // Ensure enough output room for a full question JSON (~300 tokens typical).
+      // Use a fixed value instead of body.max_tokens (which is sized for analysis).
+      generationConfig.maxOutputTokens = 1024;
     } else if (body.json_mode) {
       generationConfig.responseMimeType = "application/json";
     }
@@ -397,9 +406,10 @@ export default async (request) => {
             ...geminiBody,
             contents: retryContents,
             generationConfig: {
-              maxOutputTokens: generationConfig.maxOutputTokens,
+              maxOutputTokens: 1024,
               temperature: 0,
               responseMimeType: "application/json",
+              thinkingConfig: { thinkingBudget: 0 },
               // responseSchema intentionally omitted
             },
           };
