@@ -104,14 +104,13 @@ function Typewriter({ text, speed = 18, onDone }) {
 
 function ProgressBar({ current, maxQuestions, coveredCategoryIds }) {
   const { t } = useI18n();
-  const questionPct = Math.min(100, (current / maxQuestions) * 100);
   const overallPct = computeSessionProgressPercent(current, coveredCategoryIds);
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 11, color: "var(--dim)", letterSpacing: 2, flexWrap: "wrap", gap: 8 }}>
         <span>{t("progress.dataCollection")}</span>
         <span>
-          {t("progress.progress")} {overallPct}% · {t("progress.questionShort")} {current}/{maxQuestions}
+          {t("progress.progress")} {overallPct}% · {t("progress.questionShort")} {current}
         </span>
       </div>
       <div style={{ height: 2, background: "var(--surface)", overflow: "hidden", marginBottom: 6 }}>
@@ -124,9 +123,6 @@ function ProgressBar({ current, maxQuestions, coveredCategoryIds }) {
             boxShadow: "0 0 8px var(--accent)",
           }}
         />
-      </div>
-      <div style={{ height: 1, background: "var(--surface)", overflow: "hidden", opacity: 0.6 }}>
-        <div style={{ height: "100%", width: `${questionPct}%`, background: "var(--dim-2)", transition: "width 0.6s ease" }} />
       </div>
     </div>
   );
@@ -591,31 +587,47 @@ function QuestionScreen({
           )}
         </div>
 
-        <h2 style={{
-          fontFamily: "var(--display)", fontStyle: "italic", fontWeight: 500,
-          fontSize: "clamp(22px, 3.5vw, 30px)", lineHeight: 1.45,
-          marginBottom: 34, textWrap: "pretty", minHeight: "3.6em", color: "var(--fg)",
+        <div style={{
+          background: "var(--accent-alpha-08)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid var(--border-soft)",
+          padding: "24px 28px",
+          borderRadius: "8px",
+          marginBottom: 34,
+          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
         }}>
-          {isLoading && !question ? (
-            <span style={{ color: "var(--accent)", fontFamily: "var(--mono)", fontSize: 14, letterSpacing: 0.5, fontStyle: "normal" }}>
+          <h2 style={{
+            fontFamily: "var(--sans, 'Outfit', sans-serif)",
+            fontStyle: "normal",
+            fontWeight: 400,
+            fontSize: "clamp(18px, 2.8vw, 22px)",
+            lineHeight: 1.6,
+            textWrap: "pretty",
+            color: "var(--fg)",
+            margin: 0,
+            letterSpacing: "0.01em",
+          }}>
+            {isLoading && !question ? (
+              <span style={{ color: "var(--accent)", fontFamily: "var(--mono)", fontSize: 13, letterSpacing: 0.5, fontStyle: "normal" }}>
+                {processingLabel}
+              </span>
+            ) : skipTypewriter ? (
+              <span>{question}</span>
+            ) : (
+              <Typewriter text={question} speed={16} onDone={() => setQuestionReady(true)} />
+            )}
+          </h2>
+          {isLoading && question && (
+            <p style={{ marginTop: 12, fontFamily: "var(--mono)", fontSize: 12, color: "var(--accent)", letterSpacing: 0.5, lineHeight: 1.6, animation: "blink 1.2s infinite" }}>
               {processingLabel}
-            </span>
-          ) : skipTypewriter ? (
-            <span>{question}</span>
-          ) : (
-            <Typewriter text={question} speed={16} onDone={() => setQuestionReady(true)} />
+            </p>
           )}
-        </h2>
-        {isLoading && question && (
-          <p style={{ marginTop: 12, fontFamily: "var(--mono)", fontSize: 12, color: "var(--accent)", letterSpacing: 0.5, lineHeight: 1.6, animation: "blink 1.2s infinite" }}>
-            {processingLabel}
-          </p>
-        )}
-        {question && !questionReady && !isLoading && (
-          <button type="button" onClick={() => { setSkipTypewriter(true); setQuestionReady(true); }} className="kk-btn-ghost" style={{ padding: "6px 14px", fontSize: 10, marginTop: 8 }}>
-            {t("question.showFull")}
-          </button>
-        )}
+          {question && !questionReady && !isLoading && (
+            <button type="button" onClick={() => { setSkipTypewriter(true); setQuestionReady(true); }} className="kk-btn-ghost" style={{ padding: "6px 14px", fontSize: 10, marginTop: 8 }}>
+              {t("question.showFull")}
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, opacity: questionReady && !isLoading ? 1 : 0.4, transition: "opacity 0.3s" }}>

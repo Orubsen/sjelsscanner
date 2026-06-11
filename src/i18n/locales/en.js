@@ -85,7 +85,7 @@ export const en = {
     emailPlaceholder: "you@email.com",
     questionsFromTitle: "WHERE DO THE QUESTIONS COME FROM?",
     questionsFromBody:
-      "Questions are generated in real time by Kjernekoden — our adaptive analysis engine. This is not a static form from a dusty test booklet. For each answer you give, Kjernekoden calculates your next move across 15 psychological depth areas (including childhood, attachment and shadow sides). You get one question at a time. The system adjusts depth individually, usually between {minQ} and {maxQ}.",
+      "Questions are generated in real time by Kjernekoden — our adaptive analysis engine. This is not a static form from a dusty test booklet. For each answer you give, Kjernekoden calculates your next move across 15 psychological depth areas (including childhood, attachment and shadow sides). You get one question at a time. The system adjusts depth individually until sufficient and triangulated data has been gathered for a comprehensive analysis.",
     savedSessionTitle: "IN-PROGRESS SESSION FOUND",
     savedSessionBody: "Question {n} · {covered}/{total} categories covered",
     continue: "CONTINUE",
@@ -94,7 +94,7 @@ export const en = {
     newAnalysis: "NEW SESSION",
     start: "START ASSESSMENT",
     disclaimer:
-      "⚠ Not diagnosis or treatment. Number of questions is tailored individually (up to {maxQ}).",
+      "⚠ Not diagnosis or treatment. Number of questions is tailored individually based on the depth of your answers.",
   },
   progress: {
     dataCollection: "DATA COLLECTION",

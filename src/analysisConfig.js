@@ -1,6 +1,6 @@
 export const STORAGE_KEY = "sjelsscanner_state_v3";
 
-export const MAX_QUESTIONS = 25;
+export const MAX_QUESTIONS = 40;
 export const MIN_QUESTIONS_SUGGEST = 15;
 export const META_CALL_LIMIT = 8;
 

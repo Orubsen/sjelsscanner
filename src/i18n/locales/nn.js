@@ -85,7 +85,7 @@ export const nn = {
     emailPlaceholder: "din@epost.no",
     questionsFromTitle: "KOR KJEM SPØRSMÅLA FRÅ?",
     questionsFromBody:
-      "Spørsmåla vert genererte i sanntid av Kjernekoden – vår adaptive analysemotor. Dette er ikkje eit statisk skjema frå ein støvete testbok. For kvart svar du avgjev, kalkulerer Kjernekoden ditt neste trekk med utgangspunkt i 15 psykologiske djupedområde (inkludert barndom, tilknyting og skyggesider). Du får eitt spørsmål om gongen. Systemet tilpassar djupna individuelt, vanlegvis mellom {minQ} og {maxQ}.",
+      "Spørsmåla vert genererte i sanntid av Kjernekoden – vår adaptive analysemotor. Dette er ikkje eit statisk skjema frå ein støvete testbok. For kvart svar du avgjev, kalkulerer Kjernekoden ditt neste trekk med utgangspunkt i 15 psykologiske djupedområde (inkludert barndom, tilknyting og skyggesider). Du får eitt spørsmål om gongen. Systemet tilpassar djupna individuelt til det er samla tilstrekkeleg og triangulert datagrunnlag for ein omfattande analyse.",
     savedSessionTitle: "PÅBYGD ANALYSE FUNNE",
     savedSessionBody: "Spørsmål {n} · {covered}/{total} kategoriar dekt",
     continue: "FORTSET",
@@ -94,7 +94,7 @@ export const nn = {
     newAnalysis: "NY ANALYSE",
     start: "INITIER ANALYSE",
     disclaimer:
-      "⚠ Ikkje diagnose eller behandling. Tal spørsmål tilpassast individuelt (opp til {maxQ}).",
+      "⚠ Ikkje diagnose eller behandling. Tal spørsmål tilpassast individuelt basert på djupna i svara dine.",
   },
   progress: {
     dataCollection: "DATAINNSAMLING",
