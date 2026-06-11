@@ -13,6 +13,7 @@ export const BRAND = {
   websiteUrl: "https://rubenrøsten.no",
   websiteLabel: "rubenrøsten.no",
   siteUrl: "https://sjelescanner.netlify.app",
+  googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || "724660703679-placeholder.apps.googleusercontent.com",
 };
 
 /** Ca. tid for typisk økt (spørsmål + rapport). */

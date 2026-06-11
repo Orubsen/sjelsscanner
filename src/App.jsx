@@ -7,6 +7,7 @@ import {
   MIN_QUESTIONS_SUGGEST,
   META_CALL_LIMIT,
   FRAMEWORK_ORDER,
+  BRAND,
 } from "./analysisConfig.js";
 import { useI18n } from "./i18n/I18nContext.jsx";
 import { LanguageSwitcher } from "./i18n/LanguageSwitcher.jsx";
@@ -199,7 +200,8 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
   const [email, setEmail] = useState(initialParticipant?.email || "");
   const [consent, setConsent] = useState(Boolean(initialParticipant?.id));
   const [touched, setTouched] = useState(false);
-  const [google, setGoogle] = useState(null); // null | "connecting" | {name, email}
+  const [google, setGoogle] = useState(null); // null | {name, email}
+  const [googleLoaded, setGoogleLoaded] = useState(false);
 
   const viaGoogle = google && google !== "connecting";
   const effName = viaGoogle ? google.name : name;
@@ -207,10 +209,62 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
   const validation = validateParticipant({ name: effName, age, email: effEmail }, locale);
   const canStart = validation.valid && consent;
 
-  const connectGoogle = () => {
-    setGoogle("connecting");
-    setTimeout(() => setGoogle({ name: "Ruben Røsten", email: "ruben@eksempel.no" }), 1100);
-  };
+  useEffect(() => {
+    if (window.google) {
+      setGoogleLoaded(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setGoogleLoaded(true);
+    document.body.appendChild(script);
+  }, []);
+
+  const handleCredentialResponse = useCallback((response) => {
+    try {
+      const jwt = response.credential;
+      const base64Url = jwt.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(decodeURIComponent(atob(base64).split('').map(c => {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join('')));
+      
+      if (payload && payload.email) {
+        setGoogle({
+          name: payload.name || "",
+          email: payload.email,
+        });
+      }
+    } catch (e) {
+      console.error("Feil ved parsing av Google-token:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!googleLoaded || google) return;
+
+    try {
+      window.google.accounts.id.initialize({
+        client_id: BRAND.googleClientId,
+        callback: handleCredentialResponse,
+      });
+
+      const btnDiv = document.getElementById("googleBtnDiv");
+      if (btnDiv) {
+        window.google.accounts.id.renderButton(btnDiv, {
+          theme: "outline",
+          size: "large",
+          text: "continue_with",
+          shape: "rectangular",
+          width: btnDiv.offsetWidth || 340,
+        });
+      }
+    } catch (err) {
+      console.error("Klarte ikke initialisere Google Sign-In:", err);
+    }
+  }, [googleLoaded, google, handleCredentialResponse]);
 
   const handleStart = () => {
     setTouched(true);
@@ -265,19 +319,7 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
       <div className="kk-rise kk-rise-2" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         {!viaGoogle ? (
           <>
-            <button
-              className="kk-btn-ghost"
-              style={{ justifyContent: "center", gap: 12, padding: "14px 20px", color: "var(--fg)" }}
-              onClick={connectGoogle}
-              disabled={google === "connecting"}
-            >
-              <span aria-hidden="true" style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
-                width: 20, height: 20, borderRadius: "50%", border: "1px solid var(--fg-soft)",
-                fontFamily: "var(--body)", fontSize: 13, fontWeight: 600,
-              }}>G</span>
-              {google === "connecting" ? "KOBLER TIL GOOGLE…" : "FORTSETT MED GOOGLE"}
-            </button>
+            <div id="googleBtnDiv" style={{ width: "100%", display: "flex", justifyContent: "center", minHeight: 46 }} />
             <div className="kk-divider">
               <span className="kk-label">ELLER</span>
             </div>
