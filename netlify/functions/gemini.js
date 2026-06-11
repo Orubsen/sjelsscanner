@@ -1,3 +1,12 @@
+// =====================================================
+// OPPDATERT VERSJON MED BEDRE ANALYSE-RETRY
+// Endringer:
+// - Lagt til normalizeAnalysisPayload
+// - Forbedret MAX_TOKENS-håndtering for analyse (redder partial + retry signal)
+// - Senket maxOutputTokens for analyse til 5000 for å redusere timeout-risiko
+// - Bruk Gemini 2.5 Flash (beste kvote du har)
+// =====================================================
+
 // F1 – Modellnavn kan overstyres via Netlify-miljøvariabel GEMINI_MODEL.
 // Standard: "gemini-2.5-flash". Sett variabelen i Netlify-dashbordet
 // under Site configuration → Environment variables dersom du vil bytte modell
@@ -266,6 +275,20 @@ function normalizeQuestionPayload(text) {
   }
 }
 
+/** NEW: Ensure analysis JSON is as valid as possible even if Gemini truncates it. */
+function normalizeAnalysisPayload(text) {
+  const trimmed = String(text || "").trim();
+  try {
+    return JSON.stringify(JSON.parse(trimmed));
+  } catch {
+    try {
+      return JSON.stringify(JSON.parse(repairJson(trimmed)));
+    } catch {
+      return null;
+    }
+  }
+}
+
 export default async (request) => {
   // K3 – OPTIONS preflight
   if (request.method === "OPTIONS") {
@@ -334,12 +357,9 @@ export default async (request) => {
       // more output tokens to fit within the Netlify function timeout.
       // Quality is maintained by the detailed system prompt (getAnalysisSystemPrompt).
       generationConfig.thinkingConfig = { thinkingBudget: 0 };
-      // Override maxOutputTokens for analysis: use client value capped at 8192.
-      // A full analysis JSON (10 ## sections + 5 frameworks) is ~6000-7000 tokens.
-      // Cap raised from 6000 to 8192 to accommodate complete output.
-      // Cap at 6000 for analysis calls (expanded system prompt + 13 sections fits in ~5500 tokens).
-      // 8192 caused 504 Gateway Timeout on Netlify Pro (26s limit) with the new system prompt.
-      generationConfig.maxOutputTokens = Math.min(body.max_tokens ?? 512, 6000);
+      // Override maxOutputTokens for analysis: use client value capped at 5000 (was 6000).
+      // Lower cap reduces risk of hitting Netlify timeout (31s+ seen in logs).
+      generationConfig.maxOutputTokens = Math.min(body.max_tokens ?? 512, 5000);
       // Apply analysis response schema when requested (body.analysis_schema === true).
       // The schema enforces "analysis" and "frameworks" fields that Gemini otherwise omits
       // in favour of custom fields like forensic_flags / dark_triad_assessment.
@@ -423,20 +443,25 @@ export default async (request) => {
       if (_last >= 0 && _last < text.length - 1) text = text.slice(0, _last + 1);
     }
 
-    // TILTAK 2: Explicit MAX_TOKENS error for analysis calls.
-    // A truncated analysis JSON looks syntactically valid after repairJson closes {}-pairs,
-    // but the "analysis" string is cut mid-sentence. Return 413 so the client retries
-    // cleanly instead of silently accepting a half-written analysis.
-    // Only applies to json_mode (analysis) calls — question calls use useQuestionSchema.
+    // TILTAK 2: Forbedret MAX_TOKENS-håndtering for analyse
+    // Prøver å redde delvis JSON hvis mulig, og sender alltid retry-signal til klienten.
     if (!useQuestionSchema && body.json_mode && finishReason === "MAX_TOKENS") {
       console.error("gemini: analyse trunkert (MAX_TOKENS) – sender 413 til klient for retry");
+      
+      const normalizedPartial = normalizeAnalysisPayload(text);
+      
       return new Response(
         JSON.stringify({
-          error: "Analysesvaret ble trunkert (token-grense nådd). Prøver igjen.",
+          error: "Analysesvaret ble trunkert pga. token-grense. Prøver igjen automatisk.",
           truncated: true,
           retry: true,
+          partial: normalizedPartial ? JSON.parse(normalizedPartial) : null,
+          finishReason,
         }),
-        { status: 413, headers: { "Content-Type": "application/json", ...corsHeaders() } }
+        { 
+          status: 413, 
+          headers: { "Content-Type": "application/json", ...corsHeaders() } 
+        }
       );
     }
 
