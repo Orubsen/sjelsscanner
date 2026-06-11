@@ -1162,6 +1162,10 @@ export default function App() {
               retryAttempt + 1
             );
           }
+          if (analysisMode && data?.partial) {
+            console.warn("[RECOVERY] Bruker delvis parset JSON fra server etter 413.");
+            return data.partial;
+          }
         }
 
         if (!response.ok) {
@@ -1197,7 +1201,17 @@ export default function App() {
               retryAttempt + 1
             );
           }
-          throw new Error("Analysen ble avkortet etter alle forsøk. Prøv igjen.");
+          console.warn("[RECOVERY] Analysen ble avkortet etter alle forsøk. Bruker tilgjengelig råtekst.");
+          return {
+            type: "analysis",
+            analysis: text,
+            short_summary: "Klinisk rapport (delvis avkortet)",
+            overall_insight: "Rapporten ble avkortet pga. lengdebegrensning, men tilgjengelig tekst er bevart.",
+            key_themes: [],
+            conflicts: [],
+            clinical_followup: "",
+            frameworks: null
+          };
         }
 
         const tryParse = () => parseLlmJson(text);
@@ -1208,7 +1222,22 @@ export default function App() {
           console.log("[DIAG] Parsed result:", JSON.stringify(parsed, null, 2));
           return parsed;
         } catch (parseErr) {
-          if (retriesLeft <= 0) throw parseErr;
+          if (retriesLeft <= 0) {
+            if (analysisMode) {
+              console.warn("[RECOVERY] Kunne ikke parse analyse-JSON etter alle forsøk. Bruker råtekst.");
+              return {
+                type: "analysis",
+                analysis: text,
+                short_summary: "Klinisk rapport (råtekst)",
+                overall_insight: "Rapporten ble gjenopprettet fra råtekst på grunn av en formateringsfeil.",
+                key_themes: [],
+                conflicts: [],
+                clinical_followup: "",
+                frameworks: null
+              };
+            }
+            throw parseErr;
+          }
           const isTruncated =
             data?.truncated || data?.finishReason === "MAX_TOKENS";
           const retryKey = isTruncated
