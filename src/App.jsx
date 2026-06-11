@@ -1079,7 +1079,6 @@ export default function App() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gemini-2.5-flash",
             max_tokens: maxTokens,
             json_mode: jsonMode || analysisMode,
             json_schema: jsonMode ? "question" : undefined,
@@ -1248,7 +1247,7 @@ export default function App() {
   }, [locale, systemPrompt, t]);
 
   const finishAnalysis = useCallback(
-    (analysisResult, historyToUse, rawResult) => {
+    (analysisResult, historyToUse, rawResult, answersToUse = structuredAnswers) => {
       setConversationHistory([
         ...historyToUse,
         { role: "user", content: apiT(locale, "api.generateAnalysis") },
@@ -1256,7 +1255,7 @@ export default function App() {
       ]);
       setAnalyzingStatus(t("analyzing.reportReady"));
       if (participant?.id) {
-        markParticipantAnalysisComplete(participant.id, structuredAnswers.length);
+        markParticipantAnalysisComplete(participant.id, answersToUse.length);
       }
       setTimeout(() => {
         setAnalysis(analysisResult.analysis);
@@ -1265,7 +1264,7 @@ export default function App() {
         setAnalyzingStatus("");
       }, 1200);
     },
-    [participant?.id, structuredAnswers.length, locale, t]
+    [participant?.id, structuredAnswers, locale, t]
   );
 
   const applyMetaFromResult = useCallback(
@@ -1282,7 +1281,7 @@ export default function App() {
   );
 
   const triggerAnalysis = useCallback(
-    async (historyToUse) => {
+    async (historyToUse, answersToUse = structuredAnswers) => {
       clearError();
       setIsLoading(true);
       setOpinion("");
@@ -1293,31 +1292,31 @@ export default function App() {
       setAnalyzingStatus(t("analyzing.step2"));
       try {
         let result = await callClaude(
-          buildDirectAnalysisMessages(structuredAnswers, historyToUse, participant, locale),
+          buildDirectAnalysisMessages(answersToUse, historyToUse, participant, locale),
           // 6000 tokens: 13 ## sections (Observasjon/Tolkning/Usikkerhet) + 5 frameworks
           // fits comfortably in ~4000-5500 tokens. Cap at 6000 to stay well within
           // Netlify Pro's 26-second function timeout. 8192 caused 504s with the
           // expanded system prompt (Winnicott/Kohut/Bion + 3 new sections).
-          { structuredAnswers, maxTokens: 6000, skipPrepare: true, analysisMode: true, participant }
+          { structuredAnswers: answersToUse, maxTokens: 6000, skipPrepare: true, analysisMode: true, participant }
         );
         let analysisResult = normalizeAnalysis(result);
         if (!analysisResult.analysis) {
           const retry = await callClaude(
             [
-              ...buildDirectAnalysisMessages(structuredAnswers, historyToUse, participant, locale),
+              ...buildDirectAnalysisMessages(answersToUse, historyToUse, participant, locale),
               { role: "assistant", content: JSON.stringify(result) },
               {
                 role: "user",
                 content: apiT(locale, "api.analysisRetry"),
               },
             ],
-            { structuredAnswers, maxTokens: 6000, skipPrepare: true, analysisMode: true, participant }
+            { structuredAnswers: answersToUse, maxTokens: 6000, skipPrepare: true, analysisMode: true, participant }
           );
           result = retry;
           analysisResult = normalizeAnalysis(retry);
         }
         if (analysisResult.analysis) {
-          finishAnalysis(analysisResult, historyToUse, result);
+          finishAnalysis(analysisResult, historyToUse, result, answersToUse);
         } else {
           setPhase("questions");
           setError(t("errors.analysisNotGenerated"));
@@ -1455,7 +1454,7 @@ export default function App() {
       // This avoids the heavy call that often times out near 50 questions.
       if (mustForceAnalysis(questionNumber)) {
         setConversationHistory(newHistory);
-        await triggerAnalysis(newHistory);
+        await triggerAnalysis(newHistory, nextStructured);
         return;
       }
 
@@ -1466,7 +1465,7 @@ export default function App() {
         // Honour its intent by triggering the analysis flow directly.
         if (result?.type === "auto_analysis_trigger") {
           setConversationHistory(newHistory);
-          await triggerAnalysis(newHistory);
+          await triggerAnalysis(newHistory, nextStructured);
           return;
         }
 
@@ -1479,7 +1478,7 @@ export default function App() {
 
         if (analysisResult.analysis) {
           setPhase("analyzing");
-          finishAnalysis(analysisResult, updatedHistory, result);
+          finishAnalysis(analysisResult, updatedHistory, result, nextStructured);
           return;
         }
 
@@ -1496,7 +1495,7 @@ export default function App() {
             // "analyzing" med en gang den starter.
             setPhase("ready_for_analysis");
             setConversationHistory(updatedHistory);
-            await triggerAnalysis(updatedHistory);
+            await triggerAnalysis(updatedHistory, nextStructured);
             return;
           }
           // Fallback: if the model returned the exact same question again
@@ -1507,12 +1506,12 @@ export default function App() {
           ) {
             setPhase("ready_for_analysis");
             setConversationHistory(updatedHistory);
-            await triggerAnalysis(updatedHistory);
+            await triggerAnalysis(updatedHistory, nextStructured);
             return;
           }
           const nextNum = result.questionNumber || questionNumber + 1;
           if (nextNum > MAX_QUESTIONS) {
-            await triggerAnalysis(updatedHistory);
+            await triggerAnalysis(updatedHistory, nextStructured);
             return;
           }
           setConversationHistory(updatedHistory);
