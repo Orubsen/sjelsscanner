@@ -2,6 +2,7 @@ import {
   corsHeaders,
   getParticipantStore,
   jsonResponse,
+  updateParticipantInIndex,
 } from "./participant-blobs.js";
 
 export default async (request) => {
@@ -36,6 +37,7 @@ export default async (request) => {
     // V1 – Atomic: skriv kun til deltakernes egen blob-nøkkel.
     // Ingen _index-blob — eliminerer race condition.
     await store.setJSON(id, updated);
+    await updateParticipantInIndex(store, id, updated.analysisCompletedAt);
 
     return jsonResponse({ ok: true, id }, 200, "POST, OPTIONS");
   } catch (error) {

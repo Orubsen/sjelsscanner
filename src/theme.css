@@ -5,8 +5,6 @@
    accent lifted from the Røsten logo. Clinical & trustworthy.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');
-
 :root {
   /* Surfaces — deep violet-black, low chroma */
   --bg: #0b081a;
@@ -262,3 +260,343 @@ details summary::marker { content: ""; }
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* ============================================================
+   KODEKJERNEN REDESIGN ADOPTIONS
+   Zoom-scaling, layout shell classes, and focus visibility
+   ============================================================ */
+
+@media (min-width: 900px) {
+  :root {
+    --layout-intro: 40rem;
+    --layout-narrow: 36rem;
+    --layout-main: 52rem;
+    --layout-report: 56rem;
+  }
+
+  .app-root {
+    zoom: 1.75;
+  }
+
+  .layout-shell--intro {
+    max-width: var(--layout-intro) !important;
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+  }
+
+  .layout-shell--question {
+    max-width: var(--layout-main) !important;
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+  }
+
+  .layout-shell--report {
+    max-width: var(--layout-report) !important;
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+  }
+
+  .layout-narrow {
+    max-width: var(--layout-narrow) !important;
+  }
+
+  .type-display-title {
+    font-size: clamp(2.75rem, 5.5vw, 5rem) !important;
+  }
+
+  .type-question-text {
+    font-size: clamp(1.2rem, 2vw, 1.5rem) !important;
+    line-height: 1.75 !important;
+  }
+
+  .type-option-btn {
+    font-size: 1.0625rem !important;
+    padding: 1rem 1.25rem !important;
+    line-height: 1.55 !important;
+  }
+
+  .type-intro-field {
+    font-size: 1rem !important;
+    padding: 0.75rem 0.875rem !important;
+  }
+
+  .type-mono-xs {
+    font-size: 0.75rem !important;
+  }
+
+  .type-mono-sm {
+    font-size: 0.8125rem !important;
+  }
+
+  .type-body-sm {
+    font-size: 0.9375rem !important;
+  }
+
+  .brand-footer-text {
+    font-size: 0.75rem !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --layout-intro: 44rem;
+    --layout-narrow: 40rem;
+    --layout-main: 56rem;
+    --layout-report: 60rem;
+  }
+
+  .app-root {
+    zoom: 1.9;
+  }
+
+  .type-display-title {
+    font-size: clamp(3rem, 5vw, 5.5rem) !important;
+  }
+
+  .type-question-text {
+    font-size: clamp(1.3rem, 1.8vw, 1.65rem) !important;
+  }
+
+  .type-option-btn {
+    font-size: 1.125rem !important;
+    padding: 1.1rem 1.35rem !important;
+  }
+}
+
+@media (min-width: 1536px) {
+  .app-root {
+    zoom: 2;
+  }
+}
+
+/* Firefox older versions fallback without zoom support */
+@supports not (zoom: 1) {
+  @media (min-width: 900px) {
+    .app-root {
+      transform: scale(1.75);
+      transform-origin: top center;
+      width: 57.143%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+  @media (min-width: 1200px) {
+    .app-root {
+      transform: scale(1.9);
+      width: 52.632%;
+    }
+  }
+  @media (min-width: 1536px) {
+    .app-root {
+      transform: scale(2);
+      width: 50%;
+    }
+  }
+}
+
+/* details summary resets */
+.app-root details summary {
+  list-style: none;
+}
+.app-root details summary::-webkit-details-marker {
+  display: none;
+}
+.app-root details summary::marker {
+  content: "";
+}
+
+/* Keyboard focus-visible focus indicators */
+.app-root *:focus:not(:focus-visible) {
+  outline: none;
+}
+.app-root *:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.app-root .type-option-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  background: rgba(129, 140, 248, 0.08);
+  border-color: var(--accent) !important;
+}
+.app-root input:focus-visible,
+.app-root textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+  border-color: var(--accent) !important;
+}
+.app-root input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.app-root details summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------
+   KODEKJERNEN REDESIGN ADOPTIONS (PRIORITY 2 ADDITIONS)
+   ------------------------------------------------------------ */
+
+/* Card layout */
+.app-root .kk-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 28px;
+}
+
+/* Teaser card */
+.app-root .kk-teaser {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-soft);
+  background: linear-gradient(160deg, #14102c 0%, #0d0a20 64%, #110c26 100%);
+  padding: 34px 36px;
+}
+.app-root .kk-teaser-glow {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 46% 60% at 88% 8%, var(--accent-alpha-15), transparent 60%),
+    radial-gradient(ellipse 40% 50% at 6% 96%, rgba(197,163,104,0.10), transparent 60%);
+}
+.app-root .kk-teaser-opt {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--fg-soft); font-family: var(--body); font-size: 16.5px; line-height: 1.4;
+  padding: 15px 18px; cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s, transform 0.15s;
+}
+.app-root .kk-teaser-opt:hover { border-color: var(--accent); color: var(--fg); transform: translateX(2px); }
+.app-root .kk-teaser-opt.is-active {
+  border-color: var(--accent); color: var(--fg);
+  background: var(--accent-alpha-08); box-shadow: inset 0 0 0 1px var(--accent-alpha-25);
+}
+.app-root .kk-teaser-dot {
+  width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0;
+  border: 1px solid var(--dim); transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.app-root .kk-teaser-opt.is-active .kk-teaser-dot {
+  background: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px var(--accent);
+}
+.app-root .kk-teaser-reveal {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows 0.5s cubic-bezier(0.22,1,0.36,1);
+}
+.app-root .kk-teaser-reveal.is-open { grid-template-rows: 1fr; }
+.app-root .kk-teaser-reveal > div { overflow: hidden; }
+
+/* Delbart Kjernekode-kort */
+.app-root .kk-corecard {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-soft);
+  background: linear-gradient(155deg, #15112e 0%, #0e0b22 60%, #120d28 100%);
+  padding: 30px 32px;
+}
+.app-root .kk-corecard-bg {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 50% 60% at 12% 30%, var(--accent-alpha-15), transparent 60%),
+    radial-gradient(ellipse 40% 50% at 92% 80%, rgba(197,163,104,0.10), transparent 60%);
+}
+
+/* Account pick option */
+.app-root .kk-acct-pick {
+  display: flex; align-items: center; gap: 14; width: 100%;
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 14px 16px; cursor: pointer; transition: border-color 0.2s, background 0.2s;
+}
+.app-root .kk-acct-pick:hover { border-color: var(--accent); background: var(--accent-alpha-08); }
+
+/* Modal styles */
+.app-root .kk-modal-veil {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(6, 4, 16, 0.74);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  animation: kk-veil-in 0.24s ease;
+}
+@keyframes kk-veil-in { from { opacity: 0; } to { opacity: 1; } }
+.app-root .kk-modal {
+  width: min(420px, 100%);
+  background: var(--bg-2);
+  border: 1px solid var(--border-soft);
+  padding: 26px 28px 24px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  animation: kk-modal-in 0.28s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes kk-modal-in { from { transform: translateY(14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.app-root .kk-spin {
+  display: inline-block;
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  animation: kk-spin 0.7s linear infinite;
+}
+@keyframes kk-spin { to { transform: rotate(360deg); } }
+
+/* Action links (under card or note fields) */
+.app-root .kk-link-act {
+  background: none; border: none; cursor: pointer;
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em;
+  color: var(--fg-soft); padding: 2px 0;
+  transition: color 0.18s ease;
+}
+.app-root .kk-link-act:hover { color: var(--accent-bright); }
+
+/* Toggle switch (privacy settings) */
+.app-root .kk-switch {
+  position: relative; flex-shrink: 0;
+  width: 44px; height: 24px; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  cursor: pointer; transition: background 0.2s, border-color 0.2s;
+}
+.app-root .kk-switch.is-on { background: var(--accent); border-color: var(--accent); }
+.app-root .kk-switch-knob {
+  position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--fg); transition: transform 0.2s cubic-bezier(0.22,1,0.36,1);
+}
+.app-root .kk-switch.is-on .kk-switch-knob { transform: translateX(20px); background: #0b081a; }
+
+/* Segmented control buttons */
+.app-root .kk-seg {
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em;
+  background: var(--surface); border: 1px solid var(--border); color: var(--fg-soft);
+  padding: 10px 18px; cursor: pointer; transition: all 0.18s ease;
+}
+.app-root .kk-seg:hover { color: var(--fg); border-color: var(--accent); }
+.app-root .kk-seg.is-on { background: var(--accent); border-color: var(--accent); color: #0b081a; }
+
+/* Chip toggle (privacy sections) */
+.app-root .kk-chip-toggle {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.04em;
+  background: var(--surface); border: 1px solid var(--border); color: var(--dim);
+  padding: 7px 13px; cursor: pointer; transition: all 0.18s ease;
+}
+.app-root .kk-chip-toggle:hover { color: var(--fg-soft); border-color: var(--accent); }
+.app-root .kk-chip-toggle.is-on { background: var(--accent-alpha-08); border-color: var(--accent); color: var(--accent-bright); }
+
+/* Full screen comparison overlays */
+.app-root .kk-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  background: var(--bg); overflow-y: auto;
+  animation: kk-veil-in 0.26s ease;
+}
+.app-root .kk-overlay-inner {
+  max-width: 760px; margin: 0 auto; padding: 48px var(--pad-x) 90px;
+}
+.app-root .kk-pc-cols { display: grid; grid-template-columns: 1fr 1fr; }
+@media (max-width: 560px) {
+  .app-root .kk-pc-cols { grid-template-columns: 1fr !important; }
+}
+
+/* Achievements grid list */
+.app-root .kk-ach-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+@media (max-width: 680px) { .app-root .kk-ach-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 420px) { .app-root .kk-ach-grid { grid-template-columns: 1fr; } }
+

@@ -2,6 +2,7 @@ import {
   corsHeaders,
   getParticipantStore,
   jsonResponse,
+  addParticipantToIndex,
 } from "./participant-blobs.js";
 
 const MIN_AGE = 16;
@@ -61,6 +62,7 @@ export default async (request) => {
     // V1 – Atomic: skriv kun til deltakernes egen blob-nøkkel.
     // Ingen _index-blob — eliminerer race condition ved samtidige registreringer.
     await store.setJSON(id, entry);
+    await addParticipantToIndex(store, entry);
 
     return jsonResponse({ ok: true, id });
   } catch (error) {

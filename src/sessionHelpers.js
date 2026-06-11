@@ -5,7 +5,6 @@ import {
   MAX_QUESTIONS,
   MIN_QUESTIONS_SUGGEST,
 } from "./analysisConfig.js";
-import { compactMessagesForApi } from "./jsonUtils.js";
 import {
   formatStructuredAnswersForApi,
   buildAnswerUserMessage,

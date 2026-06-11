@@ -40,7 +40,7 @@ const QUESTION_RESPONSE_SCHEMA = {
   required: ["type", "question", "category", "questionNumber", "options"],
 };
 
-const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`;
+const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
 
 const body = {
   systemInstruction: {
