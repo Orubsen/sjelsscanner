@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { parseLlmJson, parseApiResponse } from "./jsonUtils.js";
 import { buildReportPlainText, downloadReportPdf } from "./reportExport.js";
 import {
@@ -29,6 +29,7 @@ import {
   parseSectionBlocks,
 } from "./sessionHelpers.js";
 import { BrandHeader, BrandFooter, IntroBrandMark, ParticleField } from "./BrandChrome.jsx";
+import { classifyArchetype, ARCHETYPES } from "./archetypes.js";
 import Landing from "./Landing.jsx";
 import {
   EMPTY_PARTICIPANT,
@@ -694,6 +695,91 @@ function AnalyzingScreen({ error, onClearError, onForceAnalysis, analyzingStatus
   );
 }
 
+function ArchetypeConstellation({ archetype }) {
+  const { stars, lines, code, name, subtitle, desc } = archetype;
+  return (
+    <div style={{ display: "flex", gap: 32, alignItems: "flex-start", flexWrap: "wrap" }}>
+      <div style={{ flexShrink: 0 }}>
+        <svg width="100" height="100" viewBox="0 0 100 100" style={{ display: "block" }}>
+          {lines.map(([a, b], i) => (
+            <line
+              key={i}
+              x1={stars[a].x} y1={stars[a].y}
+              x2={stars[b].x} y2={stars[b].y}
+              stroke="var(--accent)" strokeWidth="0.8" strokeOpacity="0.4"
+            />
+          ))}
+          {stars.map((s, i) => (
+            <circle
+              key={i}
+              cx={s.x} cy={s.y}
+              r={i === 0 ? 3 : 2}
+              fill={i === 0 ? "var(--accent-bright)" : "var(--accent)"}
+              fillOpacity={i === 0 ? 1 : 0.7}
+            />
+          ))}
+        </svg>
+      </div>
+      <div style={{ flex: 1, minWidth: 180 }}>
+        <span className="kk-label" style={{ color: "var(--accent)", display: "block", marginBottom: 6 }}>
+          {code}
+        </span>
+        <p style={{ fontFamily: "var(--mono)", fontWeight: 600, fontSize: 20, letterSpacing: "0.12em", margin: "0 0 2px" }}>
+          {name}
+        </p>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.16em", color: "var(--gold)", margin: "0 0 12px", textTransform: "uppercase" }}>
+          {subtitle}
+        </p>
+        <p style={{ fontFamily: "var(--display)", fontStyle: "italic", fontSize: 17, lineHeight: 1.55, color: "var(--fg-soft)", margin: 0 }}>
+          {desc}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ArchetypeDistribution({ activeId }) {
+  return (
+    <div>
+      <h2 className="kk-label" style={{ color: "var(--accent)", marginBottom: 20 }}>SAMMENLIGN MED ANDRE</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {ARCHETYPES.map((a) => {
+          const isActive = a.id === activeId;
+          return (
+            <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{
+                fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.1em",
+                color: isActive ? "var(--accent-bright)" : "var(--dim)",
+                width: 52, flexShrink: 0,
+              }}>
+                {a.code}
+              </span>
+              <div style={{ flex: 1, height: 6, background: "var(--surface-2)", position: "relative", overflow: "hidden" }}>
+                <div style={{
+                  position: "absolute", left: 0, top: 0, height: "100%",
+                  width: `${a.pct}%`,
+                  background: isActive ? "var(--accent)" : "var(--border)",
+                  transition: "width 1.2s cubic-bezier(0.22, 1, 0.36, 1)",
+                }} />
+              </div>
+              <span style={{
+                fontFamily: "var(--mono)", fontSize: 11,
+                color: isActive ? "var(--accent-bright)" : "var(--dim)",
+                width: 32, textAlign: "right", flexShrink: 0,
+              }}>
+                {a.pct}%
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 10, letterSpacing: "0.08em", color: "var(--dim)", marginTop: 16, lineHeight: 1.6 }}>
+        Omtrentlig fordeling basert på kliniske observasjoner.
+      </p>
+    </div>
+  );
+}
+
 function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant, onRestart }) {
   const { t, brand, frameworkLabels } = useI18n();
   const [visible, setVisible] = useState(false);
@@ -704,6 +790,7 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
 
   const data = analysisData || (analysis ? { analysis } : null);
   const raw = (analysis || data?.analysis || "").trim();
+  const archetype = useMemo(() => classifyArchetype(data), [data]);
   const hasFrameworks = data?.frameworks && typeof data.frameworks === "object" && Object.keys(data.frameworks).length > 0;
   const showHelhetsrapport = activeTab === "helhetsrapport" || !hasFrameworks;
 
@@ -764,6 +851,16 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
       <p className="kk-rise kk-rise-2" style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.08em", color: "var(--dim)", marginBottom: 36, lineHeight: 1.7 }}>
         {t("report.disclaimer")}
       </p>
+
+      {archetype && (
+        <div className="kk-rise kk-rise-2" style={{
+          border: "1px solid var(--border)", background: "var(--surface-2)",
+          padding: "28px", marginBottom: 40,
+        }}>
+          <span className="kk-label" style={{ color: "var(--dim)", display: "block", marginBottom: 18 }}>ARKETYPEANALYSE</span>
+          <ArchetypeConstellation archetype={archetype} />
+        </div>
+      )}
 
       {data?.short_summary && (
         <div className="kk-rise kk-rise-2" style={{
@@ -951,6 +1048,12 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
         }}>
           {raw}
         </pre>
+      )}
+
+      {archetype && (
+        <div style={{ marginTop: 60, paddingTop: 48, borderTop: "1px solid var(--border)" }}>
+          <ArchetypeDistribution activeId={archetype.id} />
+        </div>
       )}
 
       <div style={{ marginTop: 40 }}><CrisisBox /></div>
