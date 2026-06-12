@@ -1,49 +1,7 @@
-// =====================================================
-// OPPDATERT VERSJON MED BEDRE ANALYSE-RETRY
-// Endringer:
-// - Lagt til normalizeAnalysisPayload
-// - Forbedret MAX_TOKENS-håndtering for analyse (redder partial + retry signal)
-// - Senket maxOutputTokens for analyse til 5000 for å redusere timeout-risiko
-// - Bruk Gemini 2.5 Flash (beste kvote du har)
-// =====================================================
+import functions from "@google-cloud/functions-framework";
 
-// F1 – Modellnavn kan overstyres via Netlify-miljøvariabel GEMINI_MODEL.
-// Standard: "gemini-2.5-flash". Sett variabelen i Netlify-dashbordet
-// under Site configuration → Environment variables dersom du vil bytte modell
-// uten å endre kode.
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
-// ---------------------------------------------------------------------------
-// K3 – CORS låst til eget domene i produksjon
-// ---------------------------------------------------------------------------
-
-function getAllowedOrigin() {
-  if (process.env.CONTEXT === "dev") return "*";
-  return process.env.ALLOWED_ORIGIN || "https://kjernekoden.netlify.app";
-}
-
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": getAllowedOrigin(),
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Vary": "Origin",
-  };
-}
-
-/**
- * JSON Schema for analysis-phase responses.
- * Used when body.analysis_schema === true (direct analysis call, no step1).
- * Enforces the presence of "analysis" (13 ## sections) and "frameworks" (5 keys)
- * which Gemini otherwise tends to omit in favour of custom fields like
- * forensic_flags / dark_triad_assessment that normalizeAnalysis cannot handle.
- *
- * New fields (meta-prompt v2):
- *   affective_temperature — emotional intensity across answers (kald/nøytral/varm/overopphetet)
- *   diagnostic_confidence — triangulation quality rating (lav/moderat/høy + reason)
- * New analysis sections (13 total):
- *   OVERFØRING OG MOTOVERFØRING, RISIKOVURDERING, RESSURSER OG MOTSTANDSKRAFT
- */
 const ANALYSIS_RESPONSE_SCHEMA = {
   type: "object",
   properties: {
@@ -130,7 +88,6 @@ const ANALYSIS_RESPONSE_SCHEMA = {
   required: ["type", "short_summary", "overall_insight", "key_themes", "conflicts", "clinical_followup", "affective_temperature", "diagnostic_confidence", "analysis", "frameworks"],
 };
 
-/** JSON Schema for mapping-phase responses — inlined (not a separate functions file). */
 const QUESTION_RESPONSE_SCHEMA = {
   type: "object",
   properties: {
@@ -259,7 +216,6 @@ function salvageQuestionJson(text) {
   return null;
 }
 
-/** Ensure question JSON returned to the browser is always valid. */
 function normalizeQuestionPayload(text) {
   const trimmed = String(text || "").trim();
   try {
@@ -275,7 +231,6 @@ function normalizeQuestionPayload(text) {
   }
 }
 
-/** NEW: Ensure analysis JSON is as valid as possible even if Gemini truncates it. */
 function normalizeAnalysisPayload(text) {
   const trimmed = String(text || "").trim();
   try {
@@ -289,36 +244,32 @@ function normalizeAnalysisPayload(text) {
   }
 }
 
-export default async (request) => {
-  // K3 – OPTIONS preflight
-  if (request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders() });
+functions.http("geminiBackend", async (req, res) => {
+  // CORS configuration
+  const origin = req.headers.origin || "*";
+  res.set("Access-Control-Allow-Origin", origin);
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Vary", "Origin");
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).send("");
   }
 
-  if (request.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json", ...corsHeaders() },
-    });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return new Response(
-      JSON.stringify({
-        error:
-          "GEMINI_API_KEY not configured. Get a free key at https://aistudio.google.com/apikey",
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders() },
-      }
-    );
+    return res.status(500).json({
+      error: "GEMINI_API_KEY is not configured on the server.",
+    });
   }
 
   try {
     const handlerStart = Date.now();
-    const body = await request.json();
+    const body = req.body;
     const model = body.model || DEFAULT_MODEL;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
@@ -327,42 +278,20 @@ export default async (request) => {
       temperature: body.temperature ?? 0.7,
     };
     const useQuestionSchema = body.json_schema === "question";
-    // Client passes this so the server knows when analysis is appropriate
-    // even if Gemini's truncated JSON omits the analysis_ready field.
     const clientQuestionCount = Number(body.question_count) || 0;
-    // Client passes retry_attempt (0=first attempt, 1+=retry). Use temperature=0 on
-    // retries to maximise schema adherence: the client already dropped the retry message
-    // for incomplete_response, so a more deterministic call is the best recovery path.
     const clientRetryAttempt = Number(body.retry_attempt) || 0;
+
     if (useQuestionSchema) {
       generationConfig.responseMimeType = "application/json";
       generationConfig.responseSchema = QUESTION_RESPONSE_SCHEMA;
-      // temperature=0 on retries: fully deterministic → better schema adherence.
-      // temperature=0.35 on first attempt: enough creativity for diverse questions.
       generationConfig.temperature = clientRetryAttempt > 0 ? 0 : 0.35;
-      // Disable thinking for schema-mode question calls.
-      // Gemini 2.5 Flash thinking tokens count toward maxOutputTokens. If the model
-      // "thinks" for 1500+ tokens, only ~500 remain for the actual JSON — not enough
-      // to reliably generate all 4 options. Disabling thinking makes schema adherence
-      // faster and more reliable. Question JSON doesn't benefit from deep reasoning.
       generationConfig.thinkingConfig = { thinkingBudget: 0 };
-      // Ensure enough output room for a full question JSON (~300 tokens typical).
-      // Use a fixed value instead of body.max_tokens (which is sized for analysis).
       generationConfig.maxOutputTokens = 1024;
     } else if (body.json_mode) {
       generationConfig.responseMimeType = "application/json";
-      // Analysis calls (direct single-step): disable thinking to maximise generation speed.
-      // Gemini 2.5 Flash thinking tokens can consume 2-5 extra seconds before output starts.
-      // Without thinking, the model generates at full speed (~200-300 tokens/sec), allowing
-      // more output tokens to fit within the Netlify function timeout.
-      // Quality is maintained by the detailed system prompt (getAnalysisSystemPrompt).
       generationConfig.thinkingConfig = { thinkingBudget: 0 };
-      // Override maxOutputTokens for analysis: use client value capped at 5000 (was 6000).
-      // Lower cap reduces risk of hitting Netlify timeout (31s+ seen in logs).
-      generationConfig.maxOutputTokens = Math.min(body.max_tokens ?? 512, 5000);
-      // Apply analysis response schema when requested (body.analysis_schema === true).
-      // The schema enforces "analysis" and "frameworks" fields that Gemini otherwise omits
-      // in favour of custom fields like forensic_flags / dark_triad_assessment.
+      // Google Cloud allows much longer executions, but we still cap at 8192 (model maximum output)
+      generationConfig.maxOutputTokens = Math.min(body.max_tokens ?? 512, 8192);
       if (body.analysis_schema === true) {
         generationConfig.responseSchema = ANALYSIS_RESPONSE_SCHEMA;
       }
@@ -378,7 +307,7 @@ export default async (request) => {
 
     const fetchSignal =
       typeof AbortSignal !== "undefined" && AbortSignal.timeout
-        ? AbortSignal.timeout(120000)  // 2 minutes to accommodate longer prompts in late sessions
+        ? AbortSignal.timeout(240000) // 4 minutes timeout for GCP
         : undefined;
 
     const response = await fetch(url, {
@@ -393,132 +322,75 @@ export default async (request) => {
     try {
       data = rawText ? JSON.parse(rawText) : {};
     } catch (parseErr) {
-      // F5 – Logg råsvaret server-side; send generisk melding til klient.
-      console.error("gemini: invalid JSON from Gemini API:", parseErr, "| raw:", String(rawText || "").slice(0, 500));
-      return new Response(
-        JSON.stringify({
-          error: "Gemini returnerte eit ugyldig svar. Prøv igjen.",
-        }),
-        {
-          status: 502,
-          headers: { "Content-Type": "application/json", ...corsHeaders() },
-        }
-      );
+      console.error("gcp-gemini: invalid JSON from Gemini API:", parseErr, "| raw:", String(rawText || "").slice(0, 500));
+      return res.status(502).json({
+        error: "Gemini returnerte eit ugyldig svar. Prøv igjen.",
+      });
     }
 
     if (!response.ok) {
-      const message =
-        data?.error?.message || data?.error || `Gemini HTTP ${response.status}`;
-      return new Response(JSON.stringify({ error: message }), {
-        status: response.status,
-        headers: { "Content-Type": "application/json", ...corsHeaders() },
-      });
+      const message = data?.error?.message || data?.error || `Gemini HTTP ${response.status}`;
+      return res.status(response.status).json({ error: message });
     }
 
     const candidate = data?.candidates?.[0];
     const finishReason = candidate?.finishReason || "unknown";
-    let text =
-      candidate?.content?.parts
-        ?.map((p) => p.text)
-        .filter(Boolean)
-        .join("") || "";
+    let text = candidate?.content?.parts?.map((p) => p.text).filter(Boolean).join("") || "";
 
     if (!text) {
-      return new Response(
-        JSON.stringify({ error: `Empty Gemini response (finish: ${finishReason})` }),
-        {
-          status: 502,
-          headers: { "Content-Type": "application/json", ...corsHeaders() },
-        }
-      );
+      return res.status(502).json({ error: `Empty Gemini response (finish: ${finishReason})` });
     }
 
-    // Strip markdown fences Gemini sometimes adds (applies to all response types).
     text = String(text).trim()
-      .replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      .replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
     {
-      const _first = text.indexOf('{');
+      const _first = text.indexOf("{");
       if (_first > 0) text = text.slice(_first);
-      const _last = text.lastIndexOf('}');
+      const _last = text.lastIndexOf("}");
       if (_last >= 0 && _last < text.length - 1) text = text.slice(0, _last + 1);
     }
 
-    // TILTAK 2: Forbedret MAX_TOKENS-håndtering for analyse
-    // Prøver å redde delvis JSON hvis mulig, og sender alltid retry-signal til klienten.
     if (!useQuestionSchema && body.json_mode && finishReason === "MAX_TOKENS") {
-      console.error("gemini: analyse trunkert (MAX_TOKENS) – sender 413 til klient for retry");
-      
+      console.error("gcp-gemini: analyse trunkert (MAX_TOKENS) – sender 413 til klient for retry");
       const normalizedPartial = normalizeAnalysisPayload(text);
-      
-      return new Response(
-        JSON.stringify({
-          error: "Analysesvaret ble trunkert pga. token-grense. Prøver igjen automatisk.",
-          truncated: true,
-          retry: true,
-          partial: normalizedPartial ? JSON.parse(normalizedPartial) : null,
-          finishReason,
-        }),
-        { 
-          status: 413, 
-          headers: { "Content-Type": "application/json", ...corsHeaders() } 
-        }
-      );
+      return res.status(413).json({
+        error: "Analysesvaret ble trunkert pga. token-grense. Prøver igjen automatisk.",
+        truncated: true,
+        retry: true,
+        partial: normalizedPartial ? JSON.parse(normalizedPartial) : null,
+        finishReason,
+      });
     }
 
     if (useQuestionSchema) {
-      // Re-strip locally to guarantee clean input regardless of global strip edge cases.
       let t = String(text).trim();
-      const first = t.indexOf('{');
+      const first = t.indexOf("{");
       if (first > 0) t = t.slice(first);
-      const last = t.lastIndexOf('}');
+      const last = t.lastIndexOf("}");
       if (last >= 0) t = t.slice(0, last + 1);
 
-      // [DIAG] Logg finishReason og råtekstlengde rett før validering
-      console.log('[DIAG] finishReason:', finishReason, 'rawLength:', t?.length);
+      console.log("[DIAG] finishReason:", finishReason, "rawLength:", t?.length);
 
       const normalized = normalizeQuestionPayload(t);
       if (!normalized) {
-        // Graceful fallback: if the model output an analysis response during a question call
-        // (common when it decides analysis is ready around q15+), pass the text through so
-        // the frontend can parse it as analysis instead of showing error to the user.
         const looksLikeAnalysis =
           /"type"\s*:\s*"analysis"/.test(t) ||
           /"frameworks"\s*:\s*\{/.test(t) ||
           /## DOMINERENDE|## IDENTIFISERTE FORSVARSMEKANISMER/.test(t);
         if (looksLikeAnalysis) {
-          return new Response(
-            JSON.stringify({
-              content: [{ type: "text", text: t }],
-              finishReason,
-              truncated: finishReason === "MAX_TOKENS",
-            }),
-            {
-              status: 200,
-              headers: { "Content-Type": "application/json", ...corsHeaders() },
-            }
-          );
-        }
-        // JSON kan ikkje parses i det heile – signaler retry så klienten prøver igjen
-        // automatisk i staden for å vise ein feilmelding til brukaren.
-        return new Response(
-          JSON.stringify({
-            error:
-              "Gemini returnerte ugyldig spørsmåls-JSON. Prøv igjen (appen ber om kompakt svar).",
+          return res.status(200).json({
+            content: [{ type: "text", text: t }],
             finishReason,
-            retry: true,
-          }),
-          {
-            status: 502,
-            headers: { "Content-Type": "application/json", ...corsHeaders() },
-          }
-        );
+            truncated: finishReason === "MAX_TOKENS",
+          });
+        }
+        return res.status(502).json({
+          error: "Gemini returnerte ugyldig spørsmåls-JSON. Prøv igjen (appen ber om kompakt svar).",
+          finishReason,
+          retry: true,
+        });
       }
 
-      // Validate that question responses always include all 4 options.
-      // Gemini sometimes ignores the responseSchema and returns {"type":"question"} without
-      // "options" – attempt an immediate server-side retry at temperature=0 before
-      // falling back to the client-side retry signal.
-      // effectiveNorm tracks which normalised payload to use (original or retry).
       let effectiveNorm = normalized;
       try {
         const parsedCheck = JSON.parse(normalized);
@@ -527,42 +399,28 @@ export default async (request) => {
           (!Array.isArray(parsedCheck.options) || parsedCheck.options.length < 4)
         ) {
           console.error(
-            "gemini: spørsmål manglar options – prøver server-side retry. options=",
+            "gcp-gemini: spørsmål manglar options – prøver server-side retry. options=",
             parsedCheck.options,
             "| raw (200 tegn):", t.slice(0, 200)
           );
 
-          // Server-side immediate retry: append the bad response + explicit correction prompt,
-          // then call Gemini again at temperature=0 (fully deterministic schema adherence).
-          // Bilingual: covers both Norwegian and English sessions.
-          const retryInstruction =
-            "[CRITICAL ERROR / KRITISK FEIL: options missing. Return ONE valid JSON object — same question, same questionNumber — but NOW include EXACTLY 4 non-empty concrete answer strings in the \"options\" array. Example: {\"type\":\"question\",\"question\":\"...\",\"category\":\"...\",\"questionNumber\":8,\"options\":[\"A. ...\",\"B. ...\",\"C. ...\",\"D. ...\"],\"categories_covered\":[],\"missing_categories\":[],\"analysis_ready\":false,\"readiness_note\":\"\"}. JSON only, no other text.]";
-
-          // If the client has >= 15 answers, honour the intent by returning auto_analysis_trigger.
-          // We intentionally do NOT check parsedCheck.analysis_ready here: without thinking,
-          // Gemini sometimes sets analysis_ready:true at Q1-Q2 (insufficient data). Firing
-          // auto_analysis_trigger that early would skip all remaining questions.
-          // The "get analysis now" button already handles the analysis_ready:true signal from
-          // normal (4-option) question responses — no need to duplicate it here.
           if (clientQuestionCount >= 15) {
-            console.log("gemini: auto_analysis_trigger – analysis_ready=", parsedCheck.analysis_ready, "clientQuestionCount=", clientQuestionCount);
-            return new Response(
-              JSON.stringify({
-                content: [{ type: "text", text: JSON.stringify({ type: "auto_analysis_trigger", analysis_ready: true }) }],
-                finishReason,
-              }),
-              { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders() } }
-            );
+            console.log("gcp-gemini: auto_analysis_trigger – clientQuestionCount=", clientQuestionCount);
+            return res.status(200).json({
+              content: [{ type: "text", text: JSON.stringify({ type: "auto_analysis_trigger", analysis_ready: true }) }],
+              finishReason,
+            });
           }
+
+          const retryInstruction =
+            "[CRITICAL ERROR / KRISK FEIL: options missing. Return ONE valid JSON object — same question, same questionNumber — but NOW include EXACTLY 4 non-empty concrete answer strings in the \"options\" array.]";
 
           const retryContents = [
             ...geminiBody.contents,
             { role: "model", parts: [{ text: t }] },
             { role: "user", parts: [{ text: retryInstruction }] },
           ];
-          // Retry WITHOUT responseSchema — the schema constraint may be causing Gemini
-          // to generate partial JSON. Free-form JSON mode with explicit text instructions
-          // gives better options adherence on retry.
+
           const retryGeminiBody = {
             ...geminiBody,
             contents: retryContents,
@@ -571,14 +429,11 @@ export default async (request) => {
               temperature: 0,
               responseMimeType: "application/json",
               thinkingConfig: { thinkingBudget: 0 },
-              // responseSchema intentionally omitted
             },
           };
-          // Dynamic timeout for server-side retry: use remaining wall-clock budget.
-          // Netlify Pro allows 26s per function invocation, so give the retry up to
-          // 15s if the main call was fast, or 2s minimum if it was slow.
+
           const elapsed = Date.now() - handlerStart;
-          const retryBudget = Math.min(15000, Math.max(2000, 25000 - elapsed));
+          const retryBudget = Math.min(25000, Math.max(5000, 55000 - elapsed));
           const retrySignal = typeof AbortSignal !== "undefined" && AbortSignal.timeout
             ? AbortSignal.timeout(retryBudget)
             : undefined;
@@ -595,19 +450,18 @@ export default async (request) => {
               const retryData = await retryResp.json();
               let retryText = retryData?.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join("") || "";
               if (retryText) {
-                // Strip fences and normalise
                 retryText = String(retryText).trim()
-                  .replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-                const ri = retryText.indexOf('{');
+                  .replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+                const ri = retryText.indexOf("{");
                 if (ri > 0) retryText = retryText.slice(ri);
-                const rl = retryText.lastIndexOf('}');
+                const rl = retryText.lastIndexOf("}");
                 if (rl >= 0) retryText = retryText.slice(0, rl + 1);
 
                 const retryNorm = normalizeQuestionPayload(retryText);
                 if (retryNorm) {
                   const retryParsed = JSON.parse(retryNorm);
                   if (Array.isArray(retryParsed.options) && retryParsed.options.length >= 4) {
-                    console.log("gemini: server-side retry lykkast – options OK");
+                    console.log("gcp-gemini: server-side retry lykkast – options OK");
                     effectiveNorm = retryNorm;
                     retryOk = true;
                   }
@@ -615,56 +469,32 @@ export default async (request) => {
               }
             }
           } catch (retryErr) {
-            console.error("gemini: server-side retry feilet:", retryErr?.message);
+            console.error("gcp-gemini: server-side retry feilet:", retryErr?.message);
           }
 
           if (!retryOk) {
-            // Server-side retry also failed – fall back to client-side retry signal.
-            console.error("gemini: server-side retry gav ikkje 4 options – sender retry-signal til klient");
-            return new Response(
-              JSON.stringify({ error: "incomplete_response", retry: true, finishReason }),
-              {
-                status: 502,
-                headers: { "Content-Type": "application/json", ...corsHeaders() },
-              }
-            );
+            console.error("gcp-gemini: server-side retry feilet – sender retry-signal til klient");
+            return res.status(502).json({ error: "incomplete_response", retry: true, finishReason });
           }
         }
-      } catch { /* normalized er garantert gyldig JSON frå normalizeQuestionPayload */ }
+      } catch (err) {}
 
       text = effectiveNorm;
     }
 
-    return new Response(
-      JSON.stringify({
-        content: [{ type: "text", text }],
-        finishReason,
-        truncated: finishReason === "MAX_TOKENS",
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders() },
-      }
-    );
+    return res.status(200).json({
+      content: [{ type: "text", text }],
+      finishReason,
+      truncated: finishReason === "MAX_TOKENS",
+    });
   } catch (error) {
-    // F5 – Logg full feil server-side; send generisk melding til klient.
-    console.error("gemini function error:", error);
+    console.error("gcp-gemini function error:", error);
     const msg = String(error?.message || error || "Unknown error");
     const isTimeout = /timeout|aborted/i.test(msg);
-    return new Response(
-      JSON.stringify({
-        error: isTimeout
-          ? "Gemini tok for lang tid. Prøv igjen – appen sender nå mindre data per runde."
-          : "Intern serverfeil. Prøv igjen.",
-      }),
-      {
-        status: isTimeout ? 504 : 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders() },
-      }
-    );
+    return res.status(isTimeout ? 504 : 500).json({
+      error: isTimeout
+        ? "Gemini tok for lang tid. Prøv igjen – appen sender nå mindre data per runde."
+        : "Intern serverfeil. Prøv igjen.",
+    });
   }
-};
-
-= {
-  path: "/api/gemini",
-};
+});

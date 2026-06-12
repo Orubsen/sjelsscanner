@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { getStore } from "@netlify/blobs";
 
 export const STORE_NAME = "sjelsscanner-participants";
@@ -54,17 +55,20 @@ function timingSafeEqual(a, b) {
 }
 
 // ---------------------------------------------------------------------------
-// K2 – In-memory rate-limiting (per IP, per funksjonsinstans)
+// K2 – Persistent rate-limiting med Netlify Blobs (motvirker brute-force)
 // ---------------------------------------------------------------------------
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
 
-const rateLimitMap = new Map();
-
-function checkRateLimit(ip) {
+async function checkRateLimit(ip) {
+  const store = getParticipantStore();
   const now = Date.now();
-  const entry = rateLimitMap.get(ip) || { attempts: 0, lockUntil: 0 };
+  let entry = null;
+  try {
+    entry = await store.get("ratelimit-" + ip, { type: "json" });
+  } catch (_) {}
+  if (!entry) return null;
   if (now < entry.lockUntil) {
     const secsLeft = Math.ceil((entry.lockUntil - now) / 1000);
     return {
@@ -75,63 +79,100 @@ function checkRateLimit(ip) {
   return null;
 }
 
-function recordFailedAttempt(ip) {
+async function recordFailedAttempt(ip) {
+  const store = getParticipantStore();
   const now = Date.now();
-  const entry = rateLimitMap.get(ip) || { attempts: 0, lockUntil: 0 };
+  let entry = null;
+  try {
+    entry = await store.get("ratelimit-" + ip, { type: "json" });
+  } catch (_) {}
+  if (!entry) {
+    entry = { attempts: 0, lockUntil: 0 };
+  }
   entry.attempts += 1;
   if (entry.attempts >= MAX_ATTEMPTS) {
     entry.lockUntil = now + LOCKOUT_MS;
     entry.attempts = 0;
   }
-  rateLimitMap.set(ip, entry);
+  try {
+    await store.set("ratelimit-" + ip, JSON.stringify(entry));
+  } catch (_) {}
 }
 
-function clearRateLimit(ip) {
-  rateLimitMap.delete(ip);
+async function clearRateLimit(ip) {
+  const store = getParticipantStore();
+  try {
+    await store.delete("ratelimit-" + ip);
+  } catch (_) {}
 }
 
 // ---------------------------------------------------------------------------
-// K2 – In-memory sesjonstoken-butikk
+// K2 – Statisk signering av JWT-lignende sesjonstoken (stateless)
 // ---------------------------------------------------------------------------
 
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
-const sessionStore = new Map();
+
+function signToken(payload, secret) {
+  const payloadStr = JSON.stringify(payload);
+  const hmac = crypto.createHmac("sha256", secret);
+  hmac.update(payloadStr);
+  const signature = hmac.digest("base64url");
+  return Buffer.from(payloadStr).toString("base64url") + "." + signature;
+}
+
+function verifyToken(token, secret) {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 2) return null;
+    const payloadStr = Buffer.from(parts[0], "base64url").toString("utf8");
+    const signature = parts[1];
+    
+    const hmac = crypto.createHmac("sha256", secret);
+    hmac.update(payloadStr);
+    const expectedSignature = hmac.digest("base64url");
+    
+    if (!timingSafeEqual(signature, expectedSignature)) {
+      return null;
+    }
+    
+    return JSON.parse(payloadStr);
+  } catch (e) {
+    return null;
+  }
+}
 
 function createSessionToken() {
-  const token = crypto.randomUUID() + "-" + crypto.randomUUID();
-  sessionStore.set(token, { expires: Date.now() + SESSION_TTL_MS });
-  return token;
+  const secret = process.env.JWT_SECRET || process.env.PARTICIPANT_ADMIN_SECRET || "default_jwt_fallback_secret_key";
+  const payload = { expires: Date.now() + SESSION_TTL_MS };
+  return signToken(payload, secret);
 }
 
 function isValidSessionToken(token) {
-  const session = sessionStore.get(token);
-  if (!session) return false;
-  if (Date.now() > session.expires) {
-    sessionStore.delete(token);
-    return false;
-  }
-  return true;
+  const secret = process.env.JWT_SECRET || process.env.PARTICIPANT_ADMIN_SECRET || "default_jwt_fallback_secret_key";
+  const payload = verifyToken(token, secret);
+  if (!payload) return false;
+  return Date.now() <= payload.expires;
 }
 
 // ---------------------------------------------------------------------------
 // K2 – Verifiser passord og utsted token (brukes av verify-admin.js)
 // ---------------------------------------------------------------------------
 
-export function verifyPasswordAndCreateSession(providedPassword, ip) {
+export async function verifyPasswordAndCreateSession(providedPassword, ip) {
   const secret = process.env.PARTICIPANT_ADMIN_SECRET;
   if (!secret) {
     return { error: "Admin er ikke konfigurert (PARTICIPANT_ADMIN_SECRET).", status: 503 };
   }
 
-  const rateLimitErr = checkRateLimit(ip);
+  const rateLimitErr = await checkRateLimit(ip);
   if (rateLimitErr) return rateLimitErr;
 
   if (!providedPassword || !timingSafeEqual(providedPassword, secret)) {
-    recordFailedAttempt(ip);
+    await recordFailedAttempt(ip);
     return { error: "Ugyldig passord.", status: 401 };
   }
 
-  clearRateLimit(ip);
+  await clearRateLimit(ip);
   return { token: createSessionToken() };
 }
 
@@ -156,24 +197,80 @@ export function checkAdminAuth(request) {
 // V1 – Ingen _index-blob. Iterer blob-nøkler direkte for å unngå race condition.
 // ---------------------------------------------------------------------------
 
-export async function loadAllParticipants(store) {
-  // List alle nøkler i butikken. Filtrerer bort legacy "_index"-nøkkelen
-  // slik at eventuelle gamle data ikke forstyrrer.
-  const { blobs } = await store.list();
-  const keys = blobs
-    .map((b) => b.key)
-    .filter((k) => k !== "_index");
+export async function addParticipantToIndex(store, participant) {
+  try {
+    let index = await store.get("_index", { type: "json" });
+    if (!Array.isArray(index)) index = [];
+    index = index.filter((p) => p.id !== participant.id);
+    index.push({
+      id: participant.id,
+      name: participant.name,
+      age: participant.age,
+      email: participant.email,
+      createdAt: participant.createdAt,
+      analysisCompleted: participant.analysisCompleted,
+      analysisCompletedAt: participant.analysisCompletedAt,
+    });
+    await store.setJSON("_index", index);
+  } catch (e) {
+    console.error("Index update failed:", e);
+  }
+}
 
+export async function updateParticipantInIndex(store, id, completedAt) {
+  try {
+    let index = await store.get("_index", { type: "json" });
+    if (Array.isArray(index)) {
+      const item = index.find((p) => p.id === id);
+      if (item) {
+        item.analysisCompleted = true;
+        item.analysisCompletedAt = completedAt;
+        await store.setJSON("_index", index);
+      }
+    }
+  } catch (e) {
+    console.error("Index complete update failed:", e);
+  }
+}
+
+export async function loadAllParticipants(store) {
+  try {
+    const index = await store.get("_index", { type: "json" });
+    if (Array.isArray(index)) {
+      return index.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    }
+  } catch (_) {}
+
+  // Fallback: If index is missing or corrupted, scan blobs in parallel
+  const { blobs } = await store.list();
+  const keys = blobs.map((b) => b.key).filter((k) => k !== "_index");
   if (keys.length === 0) return [];
 
   const participants = await Promise.all(
     keys.map(async (key) => {
-      const entry = await store.get(key, { type: "json" });
-      return entry || null;
+      try {
+        return await store.get(key, { type: "json" });
+      } catch (_) {
+        return null;
+      }
     })
   );
 
-  return participants
-    .filter(Boolean)
-    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  const list = participants.filter(Boolean);
+
+  // Self-heal: Write new index
+  try {
+    const indexData = list.map((p) => ({
+      id: p.id,
+      name: p.name,
+      age: p.age,
+      email: p.email,
+      createdAt: p.createdAt,
+      analysisCompleted: p.analysisCompleted,
+      analysisCompletedAt: p.analysisCompletedAt,
+    }));
+    await store.setJSON("_index", indexData);
+  } catch (_) {}
+
+  return list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 }

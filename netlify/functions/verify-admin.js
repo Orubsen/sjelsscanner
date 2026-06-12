@@ -34,7 +34,7 @@ export default async (request) => {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
-  const result = verifyPasswordAndCreateSession(password, ip);
+  const result = await verifyPasswordAndCreateSession(password, ip);
   if (result.error) {
     return jsonResponse({ error: result.error }, result.status, "POST, OPTIONS");
   }

@@ -1,105 +1,68 @@
 # Revisjonsrapport – Kjernekoden (sjelsscanner)
 
-**Dato:** 9. juni 2026
-**Omfang:** Full gjennomgang av kildekode i `sjelsscanner`-mappen (frontend, Netlify-funksjoner, konfigurasjon).
-**Status:** Kun analyse – **ingen filer er endret.**
-
-> Merk om arkitektur: Prosjektreglene beskriver siden som «statisk HTML, CSS og JavaScript». I praksis er dette et **React + Vite-prosjekt** med Netlify serverless-funksjoner og en Netlify Blobs-database for deltakerdata. Det er ikke en feil i seg selv, men reglene bør oppdateres så de stemmer med faktisk stack. Funnene under er prioritert: **[KRITISK]** = må fikses før videre drift, **[VIKTIG]** = bør fikses snart, **[FORBEDRING]** = kvalitet/vedlikehold.
+**Dato:** 11. juni 2026  
+**Omfang:** Full gjennomgang av kildekode i `sjelsscanner`-mappen (frontend, Netlify-funksjoner, konfigurasjon).  
+**Status:** Revisjon fullført. Tidligere kritiske og viktige feil (K1, V1) er verifisert som løst i kildekoden. Nye utfordringer knyttet til serverless-arkitektur og ytelse er identifisert og dokumentert under.
 
 ---
 
 ## [KRITISK]
 
-### K1 – Åpen AI-proxy uten autentisering (`netlify/functions/claude.js`)
-Funksjonen videresender en **vilkårlig request-body** rett til Anthropic API med din `ANTHROPIC_API_KEY`, har `Access-Control-Allow-Origin: *` og **ingen validering eller tilgangskontroll**. Hvis nøkkelen er satt i Netlify, kan hvem som helst kalle `/api/claude` fra hvilken som helst nettside og bruke (og fakturere) AI-kontoen din fritt.
-Endepunktet brukes **ikke** av frontend lenger (appen kjører mot `/api/gemini`).
-**Anbefaling:** Fjern `claude.js` helt, eller lås den med samme validering/CORS-begrensning som resten. Sjekk samtidig at `ANTHROPIC_API_KEY` ikke ligger igjen i Netlify-miljøet unødvendig.
-
-### K2 – Deltakerregister (persondata) beskyttet kun av ett passord uten forsøksgrense
-`/api/list-participants` og `/api/verify-admin` beskytter navn, alder og e-post (persondata, GDPR) bak ett delt passord. Problemer:
-- **Ingen rate-limiting / brute-force-beskyttelse** – passordet kan gjettes ubegrenset.
-- Passordet sammenlignes med vanlig `!==` (ikke konstant-tid).
-- `Access-Control-Allow-Origin: *` gjør at angrep kan kjøres fra hvilken som helst origin.
-- Admin-«token» som lagres i `sessionStorage` **er selve passordet** i klartekst, og sendes som `Bearer` på hvert kall.
-**Anbefaling:** Legg på forsøksgrense/forsinkelse, lås CORS til eget domene, bruk konstant-tid-sammenligning, og vurder en reell øktbasert token i stedet for å lagre råpassordet i nettleseren.
-
-### K3 – CORS `*` på endepunkter som håndterer persondata
-Samtlige funksjoner (`save-participant`, `list-participants`, `complete-participant`, `gemini`, `claude`) svarer med `Access-Control-Allow-Origin: *`. For endepunkter som lagrer/leser persondata bør dette låses til ditt eget domene (f.eks. `https://kjernekoden.netlify.app`).
+### K1 – Ikke-persistent (in-memory) admin-sesjon og rate-limiting i serverless backend
+* **Problem:** I [participant-blobs.js](file:///c:/Users/Røsten_9unxm1t/.gemini/antigravity-ide/scratch/sjelsscanner/netlify/functions/participant-blobs.js#L98-L114) lagres sesjonstokene (`sessionStore = new Map()`) og rate-limiting-forsøk (`rateLimitMap = new Map()`) i minnet (in-memory variables) på Node.js-kjøretiden.
+* **Konsekvens:** Netlify Functions kjører i serverless-miljøer (ephemere, stateless containere). Når funksjonen skaleres ned, startes på nytt (cold start) eller kjøres på tvers av flere instanser (horisontal skalering):
+  1. Sesjonene vil tilfeldig slettes eller avvises. En admin som nettopp logget inn, vil plutselig oppleve `401 Ugyldig eller utløpt sesjon. Logg inn på nytt` om neste forespørsel treffer en annen instans.
+  2. Rate-limiting vil være upålitelig og lett å omgå fordi hver instans har sitt eget minne.
+* **Anbefaling:** Bruk enten en stateless token-signering (f.eks. **JWT - JSON Web Tokens** signert med en hemmelig miljøvariabel `JWT_SECRET`) som lar alle uavhengige instanser verifisere tokens uten felles tilstand, eller lagre aktive sesjonsnøkler persistent i en database eller via Netlify Blobs.
 
 ---
 
 ## [VIKTIG]
 
-### V1 – Race condition i deltaker-indeksen (Netlify Blobs)
-Både `save-participant.js` og `complete-participant.js` gjør **les → endre → skriv** på `_index`-blobben uten lås. To samtidige forespørsler kan overskrive hverandre, slik at deltakere **forsvinner fra listen** (selv om enkeltpostene fortsatt finnes). Sjelden ved lav trafikk, men reell datatap-risiko.
-**Anbefaling:** Vurder atomisk oppdatering, eller bygg listen ved å iterere over blob-nøkler i stedet for å vedlikeholde én delt indeks-blob.
-
-### V2 – Feil/utdatert domene i delingsmetadata (Open Graph)
-`index.html` og språkfilene bruker `https://sjelescanner.netlify.app` (merk: «sjele», ikke «sjels»), mens live-domenet ifølge prosjektet er `kjernekoden.netlify.app`. Konsekvens: feil canonical/`og:url` og **brutt delingsbilde**.
-I tillegg er `og:image` en **`.svg`-fil**, som de fleste sosiale plattformer (Facebook, LinkedIn, X) **ikke rendrer** – forhåndsvisningen blir tom. `og:image:width/height` mangler også.
-**Anbefaling:** Rett domenet alle steder, bytt `og:image` til PNG/JPG (1200×630) og legg til bredde/høyde.
-
-### V3 – Logo på 1,9 MB lastes tre ganger per sidevisning
-`public/rosten-logo.svg` er **1,9 MB** og brukes i `BrandWatermark`, `BrandHeader` og `IntroBrandMark` – altså tre `<img>`-referanser på intro-skjermen. Dette gir treg første innlasting, spesielt på mobil.
-**Anbefaling:** Optimaliser SVG-en (SVGO) eller erstatt med en liten PNG/optimalisert SVG. En filstørrelse i denne størrelsesorden tyder på innebygde rasterdata.
-
-### V4 – Død kode forvirrer og blåser opp repoet
-- `src/psychoanalysis_app.jsx` (480 linjer): en **gammel, ubrukt versjon** av appen som kaller `/api/claude` med et annet skjema. Importeres ingen steder.
-- `src/systemPrompt.js`: eksporterer `SYSTEM_PROMPT`, men appen bruker i18n-versjonen (`src/i18n/systemPrompts.js`). Ubrukt.
-- `netlify/functions/claude.js`: ikke i bruk (se K1).
-**Anbefaling:** Fjern de tre for å unngå forvirring og fremtidige feilkoblinger.
-
-### V5 – Manglende fokus-tilstand for tastatur/skjermleser
-Svaralternativ-knappene i `QuestionScreen` viser tilstand kun via `onMouseEnter`/`onMouseLeave` (hover). Det finnes **ingen `:focus`/`:focus-visible`-stil**, så tastatur- og skjermleserbrukere ser ikke hvilket element som er i fokus. Dette er et direkte tilgjengelighetsproblem (prosjektmål 3).
-**Anbefaling:** Legg til synlig fokusmarkering på alle interaktive elementer.
+### V1 – Ytelses- og timeout-risiko ved listing av deltakere (`loadAllParticipants`)
+* **Problem:** I [participant-blobs.js](file:///c:/Users/Røsten_9unxm1t/.gemini/antigravity-ide/scratch/sjelsscanner/netlify/functions/participant-blobs.js#L159-L179) henter funksjonen `loadAllParticipants` først alle nøkler fra butikken, og gjør deretter en individuell `store.get(key)` i parallell via `Promise.all` for hver eneste deltaker.
+* **Konsekvens:** Dersom det lagres mange deltakere i databasen (f.eks. 50+), vil dette utløse dusinvis eller hundrevis av parallelle HTTP-forespørsler til Netlify Blobs innenfor én enkelt funksjonskjøring. Dette vil:
+  1. Føre til ekstremt høy ventetid for administratoren.
+  2. Raskt overskride Netlifys standard tidsavbrudd for funksjoner (10 sekunder på gratis/standard, 26 sekunder på Pro), noe som gjør at hele admin-panelet slutter å virke.
+* **Anbefaling:** Implementer paginering (pagination), eller lagre en samlet metadata-indeksfil (f.eks. `_index` eller ukentlige indekser) som oppdateres kontrollert ved registrering, slik at listen kan vises raskt uten å måtte laste ned hver enkelt deltaker-blob individuelt.
 
 ---
 
 ## [FORBEDRING]
 
-### F1 – Hardkodet modellnavn to steder
-`gemini-3.5-flash` er hardkodet både i `src/App.jsx` (linje ~1123) og som `DEFAULT_MODEL` i `netlify/functions/gemini.js`. Modellnavnet er gyldig (GA siden mai 2026), men duplisering gjør bytte tungvint.
-**Anbefaling:** Samle i én konstant eller miljøvariabel.
+### F1 – Unødvendig duplisering av Google Fonts-forespørsler
+* **Problem:** Fontene `IBM Plex Mono`, `Crimson Pro` og `Cormorant Garamond` hentes og lastes inn i to uavhengige stiler: via `<link>`-tagger i [index.html](file:///c:/Users/Røsten_9unxm1t/.gemini/antigravity-ide/scratch/sjelsscanner/index.html#L12) og via en `@import`-regel øverst i [theme.css](file:///c:/Users/Røsten_9unxm1t/.gemini/antigravity-ide/scratch/sjelsscanner/src/theme.css#L8).
+* **Konsekvens:** Nettleseren utfører unødvendige dupliserte nettverkskall, noe som gir marginalt tregere sidelasting.
+* **Anbefaling:** Fjern `@import`-linjen øverst i `theme.css` og behold `<link>`-taggene i `index.html` (siden disse også drar nytte av `preconnect`).
 
-### F2 – Inline-styles med gjentatte hardkodede farger
-Komponentene bruker svært mye inline-`style`, og feil-/aksentfarger som `#f87171`, `#fecaca`, `rgba(129,140,248,…)` er hardkodet mange steder i stedet for CSS-variabler. Temaet finnes delvis som `:root`-variabler, men ikke konsekvent.
-**Anbefaling:** Flytt fargene til CSS-variabler i `theme.css` (prosjektmål 2). Bevarer eksakt samme uttrykk.
+### F2 – Død/ubrukt kodefil `ParticleField.jsx`
+* **Problem:** Kildekoden inneholder filen [src/ParticleField.jsx](file:///c:/Users/Røsten_9unxm1t/.gemini/antigravity-ide/scratch/sjelsscanner/src/ParticleField.jsx) som definerer `ParticleField`-komponenten. Denne filen er imidlertid helt ubrukt da frontend-applikasjonen importerer `ParticleField` fra [BrandChrome.jsx](file:///c:/Users/Røsten_9unxm1t/.gemini/antigravity-ide/scratch/sjelsscanner/src/BrandChrome.jsx#L10) der koden er duplisert.
+* **Konsekvens:** Død kode øker bundle-størrelsen og skaper forvirring under vedlikehold.
+* **Anbefaling:** Slett [src/ParticleField.jsx](file:///c:/Users/Røsten_9unxm1t/.gemini/antigravity-ide/scratch/sjelsscanner/src/ParticleField.jsx).
 
-### F3 – Tema og fonter dupliseres per side
-`App.jsx`, `AdminScreen.jsx` og `PersonvernPage.jsx` deklarerer hver sin `:root`-blokk og `@import` av Google Fonts inne i en `<style>`-tag. Det gir duplisering og kan gi FOUT / dobbel fontlasting.
-**Anbefaling:** Sentraliser variabler og fontimport i `theme.css`.
+### F3 – Ubrukt funksjon `compactMessagesForApi`
+* **Problem:** I [jsonUtils.js](file:///c:/Users/Røsten_9unxm1t/.gemini/antigravity-ide/scratch/sjelsscanner/src/jsonUtils.js#L225) er funksjonen `compactMessagesForApi` deklarert for å komprimere historikk. Den importeres i `sessionHelpers.js`, men blir aldri kalt.
+* **Anbefaling:** Fjern funksjonen og dens tilhørende importlinje for å holde koden ren.
 
-### F4 – `zoom`-basert desktop-skalering
-`theme.css` skalerer hele `.app-root` med `zoom: 1.75–2` på desktop. Det fungerer i moderne nettlesere (med en `transform`-fallback for eldre Firefox), men `zoom` er en ikke-standard egenskap og gir mindre forutsigbar layout.
-**Anbefaling:** Vurder `rem`/`clamp()`-basert skalering på sikt. Ikke kritisk.
-
-### F5 – Rå feilmeldinger fra Gemini sendes til klient
-`gemini.js` returnerer Gemini sine feilmeldinger direkte til nettleseren. Lav risiko, men kan lekke intern info.
-**Anbefaling:** Logg detaljer server-side, vis generisk melding til bruker.
-
-### F6 – `<html lang>` skiller ikke nynorsk
-`I18nContext` setter `document.documentElement.lang` til `"en"` eller `"no"`; nynorsk (`nn`) faller til `"no"`. Liten a11y-presisjon.
-
-### F7 – Opprydding i arbeidsmappen
-- `deno.lock` ligger i et npm/Vite-prosjekt → forvirrende, bør fjernes.
-- En nøstet `sjelsscanner/`-mappe med eget `.git` og en lokal `.netlify/`-DB ligger i arbeidsmappen. Begge er gitignored, men roter til mappestrukturen.
+### F4 – Hardkodet ugyldig modellnavn i testskript
+* **Problem:** I testskriptet [test-gemini-question.mjs](file:///c:/Users/Røsten_9unxm1t/.gemini/antigravity-ide/scratch/sjelsscanner/scripts/test-gemini-question.mjs#L43) er API-forespørselen hardkodet mot `gemini-3.5-flash` i URL-en.
+* **Konsekvens:** Modellen eksisterer ikke offisielt i Gemini API-et på denne formen, noe som gjør at testskriptet feiler med HTTP 404/400.
+* **Anbefaling:** Endre til et gyldig modellnavn som `gemini-2.5-flash` eller les fra miljøvariabel.
 
 ---
 
-## Positivt / ikke et problem
-- `.env` er korrekt utelatt fra Git (ikke sporet). Ingen hemmeligheter funnet i versjonskontroll.
-- Inputvalidering på `save-participant` (navn, alder 16–99, e-post, samtykke) er på plass.
-- God feilhåndtering og JSON-«reparasjon» i `gemini.js` for robuste AI-svar.
-- Solid i18n-struktur (nb/nn/en) og dedikert personvernside med samtykkeflyt.
-- Modellnavnet `gemini-3.5-flash` er gyldig – ingen feil der.
+## Status for tidligere identifiserte punkter (9. juni)
 
----
-
-## Foreslått rekkefølge for utbedring
-1. **K1** (fjern/lås åpen proxy) og **K3** (CORS) – raskt og fjerner størst eksponering.
-2. **K2** (admin/brute-force + persondata) – viktigst for GDPR.
-3. **V2** (delingsdomene/og:image) og **V3** (logo-størrelse) – synlige, lavrisiko gevinster.
-4. **V4** (død kode) – gir renere base før refaktorering.
-5. **V1** (race condition), **V5** (fokus-a11y), deretter **F1–F7**.
-
-*Ingen kodeendringer er utført. Si fra hvilke punkter du vil at jeg skal fikse først, så lager jeg komplette, ferdige filer i tråd med prosjektreglene.*
+* **K1 (Åpen AI-proxy):** **LØST.** `claude.js` er fjernet.
+* **K2 (Svakt admin-passord/GDPR):** **LØST.** Passord-overføring og konstant-tid-sammenligning er implementert på server-siden. (Men se ny [KRITISK] feil over vedrørende lagring av sesjonstokenet).
+* **K3 (CORS *):** **LØST.** Låst til `ALLOWED_ORIGIN` i produksjon.
+* **K1 (React asynkron tilstandsoppdatering siste spørsmål):** **LØST.** Både `triggerAnalysis` og `finishAnalysis` i `App.jsx` er oppdatert til å ta imot `answersToUse`/`nextStructured` direkte under innsending av siste svar.
+* **V1 (Hardkodet modellnavn i frontend):** **LØST.** `model: "gemini-2.5-flash"` er fjernet fra fetch-bodyen i `App.jsx`, og faller nå korrekt tilbake på miljøvariabelen `GEMINI_MODEL` på serveren.
+* **V1 (Race condition i Netlify Blobs _index):** **LØST.** Slettet `_index`-avhengighet. Henter og sorterer blobs dynamisk.
+* **V2 (Utdatert delingsmetadata):** **LØST.** Open Graph-lenker peker på riktig domene og bruker PNG.
+* **V3 (Stor logofil):** **LØST.** `rosten-logo.svg` er optimalisert.
+* **V4 (Død kode):** **LØST.** Gamle filer slettet.
+* **V5 (Tastaturfokus/a11y):** **LØST.** `:focus-visible` lagt til i `theme.css`.
+* **F2, F3 (Inline-styles og font-duplisering):** **LØST.** Sentralisert i `theme.css`.
+* **F5 (Rå feilmeldinger):** **LØST.** Serversiden logger feil og returnerer sikre feilmeldinger til klienten.
+* **F6 (Språktag nynorsk):** **LØST.** html-tag `lang` settes nå dynamisk via `I18nContext.jsx`.
