@@ -28,9 +28,23 @@ import {
   getSavedSessionSummary,
   parseSectionBlocks,
 } from "./sessionHelpers.js";
-import { BrandHeader, BrandFooter, IntroBrandMark, ParticleField } from "./BrandChrome.jsx";
-import { classifyArchetype, ARCHETYPES } from "./archetypes.js";
+import { BrandHeader, BrandFooter, BrandWatermark, IntroBrandMark } from "./BrandChrome.jsx";
 import Landing from "./Landing.jsx";
+import { AccountScreen } from "./AccountScreen.jsx";
+import { LoginModal } from "./LoginModal.jsx";
+import { PeerCompareOverlay } from "./PeerCompareOverlay.jsx";
+import { PrivacyModal } from "./FriendsModule.jsx";
+import {
+  mapAnalysisToArchetype,
+  buildSnapshot,
+  kkDefaultSocial,
+  kkExpandPerson,
+  kkBuildContext,
+  buildPriorSeed,
+  KK_PEOPLE,
+} from "./archetypes.js";
+import { CoreCodeCard } from "./AccountComponents.jsx";
+import { CompareSection } from "./CompareSection.jsx";
 import {
   EMPTY_PARTICIPANT,
   validateParticipant,
@@ -43,7 +57,6 @@ import { computeSessionProgressPercent } from "./sessionProgress.js";
 import {
   EstimatedTimeNote,
   CrisisHelpBox,
-  CrisisBox,
   ContactRosten,
   ConsentDetails,
 } from "./SiteExtras.jsx";
@@ -104,14 +117,13 @@ function Typewriter({ text, speed = 18, onDone }) {
 
 function ProgressBar({ current, maxQuestions, coveredCategoryIds }) {
   const { t } = useI18n();
-  const questionPct = Math.min(100, (current / maxQuestions) * 100);
   const overallPct = computeSessionProgressPercent(current, coveredCategoryIds);
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 11, color: "var(--dim)", letterSpacing: 2, flexWrap: "wrap", gap: 8 }}>
         <span>{t("progress.dataCollection")}</span>
         <span>
-          {t("progress.progress")} {overallPct}% · {t("progress.questionShort")} {current}/{maxQuestions}
+          {t("progress.progress")} {overallPct}% · {t("progress.questionShort")} {current}
         </span>
       </div>
       <div style={{ height: 2, background: "var(--surface)", overflow: "hidden", marginBottom: 6 }}>
@@ -124,9 +136,6 @@ function ProgressBar({ current, maxQuestions, coveredCategoryIds }) {
             boxShadow: "0 0 8px var(--accent)",
           }}
         />
-      </div>
-      <div style={{ height: 1, background: "var(--surface)", overflow: "hidden", opacity: 0.6 }}>
-        <div style={{ height: "100%", width: `${questionPct}%`, background: "var(--dim-2)", transition: "width 0.6s ease" }} />
       </div>
     </div>
   );
@@ -200,18 +209,9 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
   const [email, setEmail] = useState(initialParticipant?.email || "");
   const [consent, setConsent] = useState(Boolean(initialParticipant?.id));
   const [touched, setTouched] = useState(false);
-  const [google, setGoogle] = useState(null); // null | "connecting" | {name, email}
 
-  const viaGoogle = google && google !== "connecting";
-  const effName = viaGoogle ? google.name : name;
-  const effEmail = viaGoogle ? google.email : email;
-  const validation = validateParticipant({ name: effName, age, email: effEmail }, locale);
+  const validation = validateParticipant({ name, age, email }, locale);
   const canStart = validation.valid && consent;
-
-  const connectGoogle = () => {
-    setGoogle("connecting");
-    setTimeout(() => setGoogle({ name: "Ruben Røsten", email: "ruben@eksempel.no" }), 1100);
-  };
 
   const handleStart = () => {
     setTouched(true);
@@ -220,7 +220,7 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
   };
 
   return (
-    <section style={{
+    <section className="layout-shell layout-shell--intro" style={{
       position: "relative", zIndex: 1, minHeight: "100vh",
       display: "flex", flexDirection: "column", justifyContent: "center",
       maxWidth: 560, margin: "0 auto", padding: "110px var(--pad-x) 80px",
@@ -229,7 +229,7 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
         <LanguageSwitcher />
       </div>
       <IntroBrandMark />
-      <span className="kk-label kk-rise kk-rise-1" style={{ color: "var(--accent)", marginBottom: 14 }}>
+      <span className="kk-label kk-rise kk-rise-1 type-mono-sm" style={{ color: "var(--accent)", marginBottom: 14 }}>
         {t("intro.beforeStart")}
       </span>
       <p className="kk-rise kk-rise-1" style={{
@@ -244,7 +244,7 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
           border: "1px solid var(--border-soft)", background: "var(--accent-alpha-08)",
           padding: "16px 18px", marginBottom: 28, display: "flex", flexDirection: "column", gap: 10,
         }}>
-          <span className="kk-label" style={{ color: "var(--accent)" }}>{t("intro.savedSessionTitle")}</span>
+          <span className="kk-label type-mono-sm" style={{ color: "var(--accent)" }}>{t("intro.savedSessionTitle")}</span>
           <p style={{ fontSize: 16, color: "var(--fg-soft)", fontFamily: "var(--body)", lineHeight: 1.5 }}>
             {t("intro.savedSessionBody", {
               n: savedSession.questionNumber,
@@ -264,112 +264,57 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
       )}
 
       <div className="kk-rise kk-rise-2" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-        {!viaGoogle ? (
-          <>
-            <button
-              className="kk-btn-ghost"
-              style={{ justifyContent: "center", gap: 12, padding: "14px 20px", color: "var(--fg)" }}
-              onClick={connectGoogle}
-              disabled={google === "connecting"}
-            >
-              <span aria-hidden="true" style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
-                width: 20, height: 20, borderRadius: "50%", border: "1px solid var(--fg-soft)",
-                fontFamily: "var(--body)", fontSize: 13, fontWeight: 600,
-              }}>G</span>
-              {google === "connecting" ? "KOBLER TIL GOOGLE…" : "FORTSETT MED GOOGLE"}
-            </button>
-            <div className="kk-divider">
-              <span className="kk-label">ELLER</span>
-            </div>
-            <label style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <span className="kk-label">{t("intro.name")}</span>
-              <input
-                className="kk-field"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onBlur={() => setTouched(true)}
-                placeholder={t("intro.namePlaceholder")}
-              />
-              {touched && validation.errors?.name && (
-                <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--error)" }}>
-                  {validation.errors.name}
-                </span>
-              )}
-            </label>
-            <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 18 }}>
-              <label style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <span className="kk-label">{t("intro.age")}</span>
-                <input
-                  className="kk-field"
-                  type="number"
-                  min={MIN_PARTICIPANT_AGE}
-                  max={MAX_PARTICIPANT_AGE}
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  onBlur={() => setTouched(true)}
-                  placeholder="—"
-                />
-                {touched && validation.errors?.age && (
-                  <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--error)" }}>
-                    {validation.errors.age}
-                  </span>
-                )}
-              </label>
-              <label style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <span className="kk-label">{t("intro.email")}</span>
-                <input
-                  className="kk-field"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onBlur={() => setTouched(true)}
-                  placeholder={t("intro.emailPlaceholder")}
-                />
-                {touched && validation.errors?.email && (
-                  <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--error)" }}>
-                    {validation.errors.email}
-                  </span>
-                )}
-              </label>
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 14,
-              border: "1px solid var(--border-soft)", background: "var(--accent-alpha-08)", padding: "14px 18px",
-            }}>
-              <span aria-hidden="true" style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                width: 34, height: 34, borderRadius: "50%", background: "var(--surface-2)",
-                border: "1px solid var(--border)", fontFamily: "var(--body)", fontSize: 16, fontWeight: 600,
-              }}>{google.name[0]}</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-                <span style={{ fontSize: 16.5, color: "var(--fg)" }}>{google.name}</span>
-                <span style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.06em", color: "var(--dim)" }}>
-                  {google.email} · PÅLOGGET VIA GOOGLE
-                </span>
-              </div>
-              <button onClick={() => setGoogle(null)} style={{
-                marginLeft: "auto", background: "none", border: "none", cursor: "pointer",
-                fontFamily: "var(--mono)", fontSize: 10.5, letterSpacing: "0.14em", color: "var(--accent)",
-              }}>BYTT</button>
-            </div>
-            <label style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 140 }}>
-              <span className="kk-label">{t("intro.age")}</span>
-              <input
-                className="kk-field"
-                type="number"
-                min={MIN_PARTICIPANT_AGE}
-                max={MAX_PARTICIPANT_AGE}
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                placeholder="—"
-              />
-            </label>
-          </>
-        )}
+        <label style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <span className="kk-label type-mono-sm">{t("intro.name")}</span>
+          <input
+            className="kk-field type-intro-field"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={() => setTouched(true)}
+            placeholder={t("intro.namePlaceholder")}
+          />
+          {touched && validation.errors?.name && (
+            <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--error)" }}>
+              {validation.errors.name}
+            </span>
+          )}
+        </label>
+        <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 18 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <span className="kk-label type-mono-sm">{t("intro.age")}</span>
+            <input
+              className="kk-field type-intro-field"
+              type="number"
+              min={MIN_PARTICIPANT_AGE}
+              max={MAX_PARTICIPANT_AGE}
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              onBlur={() => setTouched(true)}
+              placeholder="—"
+            />
+            {touched && validation.errors?.age && (
+              <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--error)" }}>
+                {validation.errors.age}
+              </span>
+            )}
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <span className="kk-label type-mono-sm">{t("intro.email")}</span>
+            <input
+              className="kk-field type-intro-field"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => setTouched(true)}
+              placeholder={t("intro.emailPlaceholder")}
+            />
+            {touched && validation.errors?.email && (
+              <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--error)" }}>
+                {validation.errors.email}
+              </span>
+            )}
+          </label>
+        </div>
 
         <label style={{ display: "flex", gap: 12, alignItems: "flex-start", cursor: "pointer", marginTop: 4 }}>
           <input
@@ -388,6 +333,15 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
           </p>
         )}
 
+        <details style={{ width: "100%", marginTop: 8, marginBottom: 8, textAlign: "left" }}>
+          <summary style={{ fontSize: 10, letterSpacing: 2, color: "var(--dim)", fontFamily: "var(--mono)", cursor: "pointer" }}>
+            {t("intro.questionsFromTitle")}
+          </summary>
+          <p style={{ marginTop: 12, fontSize: 11, color: "var(--dim-2)", fontFamily: "var(--mono)", lineHeight: 1.7 }}>
+            {t("intro.questionsFromBody", { minQ: MIN_QUESTIONS_SUGGEST, maxQ: MAX_QUESTIONS })}
+          </p>
+        </details>
+
         <div style={{ display: "flex", gap: 14, marginTop: 14, flexWrap: "wrap" }}>
           <button className="kk-btn-primary" onClick={handleStart} disabled={isStarting}>
             {isStarting ? t("intro.saving") : savedSession ? t("intro.newAnalysis") : t("intro.start")}&ensp;▸
@@ -396,7 +350,11 @@ function IntroScreen({ onStart, savedSession, onResume, onDiscard, initialPartic
         <p style={{ fontFamily: "var(--mono)", fontSize: 10.5, letterSpacing: "0.08em", color: "var(--dim)", marginTop: 8 }}>
           ⚠ {t("intro.disclaimer", { maxQ: MAX_QUESTIONS })}
         </p>
-        <div style={{ marginTop: 24 }}><CrisisBox /></div>
+        <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 8 }}>
+          <EstimatedTimeNote />
+          <CrisisHelpBox compact />
+          <ContactRosten style={{ marginBottom: 0 }} />
+        </div>
       </div>
     </section>
   );
@@ -526,7 +484,7 @@ function QuestionScreen({
   };
 
   return (
-    <section style={{
+    <section className="layout-shell layout-shell--question" style={{
       position: "relative", zIndex: 1, minHeight: "100vh",
       maxWidth: 720, margin: "0 auto", padding: "110px var(--pad-x) 80px",
       display: "flex", flexDirection: "column", justifyContent: "center",
@@ -550,38 +508,54 @@ function QuestionScreen({
           )}
         </div>
 
-        <h2 style={{
-          fontFamily: "var(--display)", fontStyle: "italic", fontWeight: 500,
-          fontSize: "clamp(22px, 3.5vw, 30px)", lineHeight: 1.45,
-          marginBottom: 34, textWrap: "pretty", minHeight: "3.6em", color: "var(--fg)",
+        <div style={{
+          background: "var(--accent-alpha-08)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid var(--border-soft)",
+          padding: "24px 28px",
+          borderRadius: "8px",
+          marginBottom: 34,
+          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
         }}>
-          {isLoading && !question ? (
-            <span style={{ color: "var(--accent)", fontFamily: "var(--mono)", fontSize: 14, letterSpacing: 0.5, fontStyle: "normal" }}>
+          <h2 className="type-question-text" style={{
+            fontFamily: "var(--sans, 'Outfit', sans-serif)",
+            fontStyle: "normal",
+            fontWeight: 400,
+            fontSize: "clamp(18px, 2.8vw, 22px)",
+            lineHeight: 1.6,
+            textWrap: "pretty",
+            color: "var(--fg)",
+            margin: 0,
+            letterSpacing: "0.01em",
+          }}>
+            {isLoading && !question ? (
+              <span style={{ color: "var(--accent)", fontFamily: "var(--mono)", fontSize: 13, letterSpacing: 0.5, fontStyle: "normal" }}>
+                {processingLabel}
+              </span>
+            ) : skipTypewriter ? (
+              <span>{question}</span>
+            ) : (
+              <Typewriter text={question} speed={16} onDone={() => setQuestionReady(true)} />
+            )}
+          </h2>
+          {isLoading && question && (
+            <p style={{ marginTop: 12, fontFamily: "var(--mono)", fontSize: 12, color: "var(--accent)", letterSpacing: 0.5, lineHeight: 1.6, animation: "blink 1.2s infinite" }}>
               {processingLabel}
-            </span>
-          ) : skipTypewriter ? (
-            <span>{question}</span>
-          ) : (
-            <Typewriter text={question} speed={16} onDone={() => setQuestionReady(true)} />
+            </p>
           )}
-        </h2>
-        {isLoading && question && (
-          <p style={{ marginTop: 12, fontFamily: "var(--mono)", fontSize: 12, color: "var(--accent)", letterSpacing: 0.5, lineHeight: 1.6, animation: "blink 1.2s infinite" }}>
-            {processingLabel}
-          </p>
-        )}
-        {question && !questionReady && !isLoading && (
-          <button type="button" onClick={() => { setSkipTypewriter(true); setQuestionReady(true); }} className="kk-btn-ghost" style={{ padding: "6px 14px", fontSize: 10, marginTop: 8 }}>
-            {t("question.showFull")}
-          </button>
-        )}
+          {question && !questionReady && !isLoading && (
+            <button type="button" onClick={() => { setSkipTypewriter(true); setQuestionReady(true); }} className="kk-btn-ghost" style={{ padding: "6px 14px", fontSize: 10, marginTop: 8 }}>
+              {t("question.showFull")}
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, opacity: questionReady && !isLoading ? 1 : 0.4, transition: "opacity 0.3s" }}>
         {options && options.map((opt, i) => (
           <button
             key={i}
-            className="kk-option"
+            className="kk-option type-option-btn"
             onClick={() => questionReady && !isLoading && onAnswer(opt)}
             disabled={!questionReady || isLoading}
           >
@@ -591,7 +565,7 @@ function QuestionScreen({
         ))}
         <button
           type="button"
-          className="kk-option"
+          className="kk-option type-option-btn"
           onClick={() => questionReady && !isLoading && setCustomMode(true)}
           disabled={!questionReady || isLoading}
           style={{ borderStyle: "dashed", color: "var(--fg-soft)" }}
@@ -656,31 +630,31 @@ function AnalyzingScreen({ error, onClearError, onForceAnalysis, analyzingStatus
     const id = setInterval(() => setPhase((p) => Math.min(p + 1, phases.length - 1)), 2200);
     return () => clearInterval(id);
   }, [phases.length]);
+  const label = analyzingStatus || phases[phase];
   return (
     <section style={{
       position: "relative", zIndex: 1, minHeight: "100vh", display: "flex",
       flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 28px",
     }}>
-      <img src="/rosten-logo.svg" alt="" style={{ width: 52, height: 52, marginBottom: 36, filter: "drop-shadow(0 0 24px var(--accent-alpha-25))" }} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 14, fontFamily: "var(--mono)", fontSize: 13, letterSpacing: "0.18em" }}>
-        {phases.map((p, i) => (
-          <div key={p} style={{
-            display: "flex", alignItems: "center", gap: 14,
-            color: i < phase ? "var(--dim)" : i === phase ? "var(--accent-bright)" : "var(--dim-2)",
-            transition: "color 0.4s",
-          }}>
-            <span style={{ width: 16, textAlign: "center" }}>
-              {i < phase ? "✓" : i === phase ? "▍" : "·"}
-            </span>
-            {p}
-          </div>
-        ))}
+      <div style={{ width: 1, height: 60, background: "linear-gradient(to bottom, transparent, var(--accent))", marginBottom: 32 }} />
+      <div style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: 3, color: "var(--accent)", marginBottom: 12, textAlign: "center" }}>
+        {label}<span style={{ animation: "blink 0.8s infinite" }}>_</span>
       </div>
       {answerCount > 0 && (
-        <span className="kk-label" style={{ marginTop: 36 }}>
+        <span className="kk-label" style={{ marginBottom: 24 }}>
           {t("analyzing.processingAnswers", { count: answerCount })}
         </span>
       )}
+      <div style={{ display: "flex", gap: 6 }}>
+        {phases.map((_, i) => (
+          <div key={i} style={{
+            width: 6, height: 6,
+            background: i <= phase ? "var(--accent)" : "var(--border)",
+            transition: "background 0.3s",
+            boxShadow: i <= phase ? "0 0 6px var(--accent)" : "none",
+          }} />
+        ))}
+      </div>
       {error && (
         <div style={{ marginTop: 32, maxWidth: 420, textAlign: "center", color: "var(--error-soft)", fontFamily: "var(--mono)", fontSize: 12 }}>
           {error}
@@ -696,91 +670,82 @@ function AnalyzingScreen({ error, onClearError, onForceAnalysis, analyzingStatus
 }
 
 function ArchetypeConstellation({ archetype }) {
-  const { stars, lines, code, name, subtitle, desc } = archetype;
+  const { code, name, subtitle, line, summary, pos } = archetype;
+  // Build a radar-like mini chart from the 4 axis positions
+  const axes = [
+    { label: "NÆRHET", val: pos.naerhet },
+    { label: "KONTROLL", val: pos.kontroll },
+    { label: "UTTRYKK", val: pos.uttrykk },
+    { label: "SELV", val: pos.selv },
+  ];
+  const cx = 48, cy = 48, r = 34;
+  const points = axes.map((_, i) => {
+    const angle = (Math.PI * 2 * i) / axes.length - Math.PI / 2;
+    const d = (axes[i].val / 100) * r;
+    return { x: cx + d * Math.cos(angle), y: cy + d * Math.sin(angle) };
+  });
+  const polygon = points.map((p) => `${p.x},${p.y}`).join(" ");
+  const grid = [0.33, 0.66, 1].map((f) =>
+    axes.map((_, i) => {
+      const angle = (Math.PI * 2 * i) / axes.length - Math.PI / 2;
+      const d = f * r;
+      return `${cx + d * Math.cos(angle)},${cy + d * Math.sin(angle)}`;
+    }).join(" ")
+  );
+
   return (
-    <div style={{ display: "flex", gap: 32, alignItems: "flex-start", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", gap: 28, alignItems: "flex-start", flexWrap: "wrap" }}>
       <div style={{ flexShrink: 0 }}>
-        <svg width="100" height="100" viewBox="0 0 100 100" style={{ display: "block" }}>
-          {lines.map(([a, b], i) => (
-            <line
-              key={i}
-              x1={stars[a].x} y1={stars[a].y}
-              x2={stars[b].x} y2={stars[b].y}
-              stroke="var(--accent)" strokeWidth="0.8" strokeOpacity="0.4"
-            />
+        <svg width="96" height="96" viewBox="0 0 96 96" style={{ display: "block" }}>
+          {grid.map((pts, i) => (
+            <polygon key={i} points={pts} fill="none" stroke="var(--border)" strokeWidth="0.8" />
           ))}
-          {stars.map((s, i) => (
-            <circle
-              key={i}
-              cx={s.x} cy={s.y}
-              r={i === 0 ? 3 : 2}
-              fill={i === 0 ? "var(--accent-bright)" : "var(--accent)"}
-              fillOpacity={i === 0 ? 1 : 0.7}
-            />
+          {axes.map((_, i) => {
+            const angle = (Math.PI * 2 * i) / axes.length - Math.PI / 2;
+            return (
+              <line key={i} x1={cx} y1={cy}
+                x2={cx + r * Math.cos(angle)} y2={cy + r * Math.sin(angle)}
+                stroke="var(--border)" strokeWidth="0.8"
+              />
+            );
+          })}
+          <polygon points={polygon} fill="var(--accent-alpha-15)" stroke="var(--accent)" strokeWidth="1.2" />
+          {points.map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="var(--accent-bright)" />
           ))}
         </svg>
       </div>
       <div style={{ flex: 1, minWidth: 180 }}>
         <span className="kk-label" style={{ color: "var(--accent)", display: "block", marginBottom: 6 }}>
-          {code}
+          KK·{code}
         </span>
-        <p style={{ fontFamily: "var(--mono)", fontWeight: 600, fontSize: 20, letterSpacing: "0.12em", margin: "0 0 2px" }}>
+        <p style={{ fontFamily: "var(--mono)", fontWeight: 600, fontSize: 19, letterSpacing: "0.12em", margin: "0 0 2px" }}>
           {name}
         </p>
         <p style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.16em", color: "var(--gold)", margin: "0 0 12px", textTransform: "uppercase" }}>
           {subtitle}
         </p>
-        <p style={{ fontFamily: "var(--display)", fontStyle: "italic", fontSize: 17, lineHeight: 1.55, color: "var(--fg-soft)", margin: 0 }}>
-          {desc}
+        <p style={{ fontFamily: "var(--display)", fontStyle: "italic", fontSize: 16.5, lineHeight: 1.55, color: "var(--fg-soft)", margin: 0 }}>
+          "{line}"
         </p>
       </div>
     </div>
   );
 }
 
-function ArchetypeDistribution({ activeId }) {
-  return (
-    <div>
-      <h2 className="kk-label" style={{ color: "var(--accent)", marginBottom: 20 }}>SAMMENLIGN MED ANDRE</h2>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {ARCHETYPES.map((a) => {
-          const isActive = a.id === activeId;
-          return (
-            <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{
-                fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.1em",
-                color: isActive ? "var(--accent-bright)" : "var(--dim)",
-                width: 52, flexShrink: 0,
-              }}>
-                {a.code}
-              </span>
-              <div style={{ flex: 1, height: 6, background: "var(--surface-2)", position: "relative", overflow: "hidden" }}>
-                <div style={{
-                  position: "absolute", left: 0, top: 0, height: "100%",
-                  width: `${a.pct}%`,
-                  background: isActive ? "var(--accent)" : "var(--border)",
-                  transition: "width 1.2s cubic-bezier(0.22, 1, 0.36, 1)",
-                }} />
-              </div>
-              <span style={{
-                fontFamily: "var(--mono)", fontSize: 11,
-                color: isActive ? "var(--accent-bright)" : "var(--dim)",
-                width: 32, textAlign: "right", flexShrink: 0,
-              }}>
-                {a.pct}%
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      <p style={{ fontFamily: "var(--mono)", fontSize: 10, letterSpacing: "0.08em", color: "var(--dim)", marginTop: 16, lineHeight: 1.6 }}>
-        Omtrentlig fordeling basert på kliniske observasjoner.
-      </p>
-    </div>
-  );
-}
-
-function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant, onRestart }) {
+function AnalysisScreen({
+  analysis,
+  analysisData,
+  structuredAnswers,
+  participant,
+  onRestart,
+  currentSaved,
+  onSave,
+  account,
+  coveredCategoryIds,
+  setPhase,
+  premium,
+}) {
   const { t, brand, frameworkLabels } = useI18n();
   const [visible, setVisible] = useState(false);
   const [activeTab, setActiveTab] = useState("helhetsrapport");
@@ -790,9 +755,26 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
 
   const data = analysisData || (analysis ? { analysis } : null);
   const raw = (analysis || data?.analysis || "").trim();
-  const archetype = useMemo(() => classifyArchetype(data), [data]);
+  const archetype = useMemo(() => mapAnalysisToArchetype(data), [data]);
   const hasFrameworks = data?.frameworks && typeof data.frameworks === "object" && Object.keys(data.frameworks).length > 0;
   const showHelhetsrapport = activeTab === "helhetsrapport" || !hasFrameworks;
+
+  const tabStyle = {
+    background: "transparent",
+    border: "1px solid var(--border)",
+    color: "var(--dim)",
+    padding: "8px 18px",
+    fontSize: 11,
+    letterSpacing: 1,
+    cursor: "pointer",
+    fontFamily: "var(--mono)",
+    transition: "all 0.2s",
+  };
+  const activeTabStyle = {
+    borderColor: "var(--accent)",
+    color: "var(--accent)",
+    background: "rgba(129,140,248,0.08)",
+  };
 
   // Prefer structured data from LLM if present (sections or frameworks)
   let sections = [];
@@ -836,12 +818,12 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
   };
 
   return (
-    <section style={{
+    <section className="layout-shell layout-shell--report" style={{
       position: "relative", zIndex: 1, maxWidth: 760, margin: "0 auto",
       padding: "120px var(--pad-x) 90px", opacity: visible ? 1 : 0, transition: "opacity 0.8s ease",
     }}>
       <span className="kk-label kk-rise" style={{ color: "var(--ok, #6ee7b7)" }}>✓ {t("report.complete")}</span>
-      <h1 className="kk-rise kk-rise-1" style={{
+      <h1 className="kk-rise kk-rise-1 type-display-title" style={{
         fontFamily: "var(--mono)", fontWeight: 600, lineHeight: 1.05,
         fontSize: "clamp(34px, 8vw, 56px)", margin: "18px 0 14px",
       }}>
@@ -873,21 +855,28 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
           <p style={{ fontFamily: "var(--display)", fontStyle: "italic", fontWeight: 500, fontSize: "clamp(21px, 3vw, 24px)", lineHeight: 1.55, marginTop: 12, textWrap: "pretty" }}>
             {data.short_summary}
           </p>
+          <button type="button" className="kk-btn-ghost" style={{ marginTop: 12, fontSize: 10 }} onClick={() => navigator.clipboard.writeText(data.short_summary)}>
+            {t("report.copyShort")}
+          </button>
         </div>
       )}
 
       {hasFrameworks && (
-        <div className="kk-rise kk-rise-3" style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--border)", marginBottom: 36 }}>
-          {[["helhetsrapport", t("report.tabFull")], ["rammeverk", t("report.tabFrameworks")]].map(([id, label]) => (
-            <button key={id} type="button" onClick={() => setActiveTab(id)} style={{
-              background: "none", border: "none", cursor: "pointer",
-              fontFamily: "var(--mono)", fontSize: 12, letterSpacing: "0.16em",
-              padding: "12px 22px",
-              color: activeTab === id ? "var(--accent-bright)" : "var(--dim)",
-              borderBottom: activeTab === id ? "2px solid var(--accent)" : "2px solid transparent",
-              marginBottom: -1, transition: "color 0.2s",
-            }}>{label}</button>
-          ))}
+        <div className="kk-rise kk-rise-3" style={{ display: "flex", gap: 8, marginBottom: 36, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab("helhetsrapport")}
+            style={{ ...tabStyle, ...(activeTab === "helhetsrapport" ? activeTabStyle : {}) }}
+          >
+            {t("report.tabFull")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("rammeverk")}
+            style={{ ...tabStyle, ...(activeTab === "rammeverk" ? activeTabStyle : {}) }}
+          >
+            {t("report.tabFrameworks")}
+          </button>
         </div>
       )}
 
@@ -985,6 +974,78 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
           ) : (
             <div style={{ color: "var(--error-soft)", fontFamily: "var(--mono)", fontSize: 12 }}>{t("report.noReportText")}</div>
           )}
+
+          {data && (
+            <div style={{ marginTop: 24, borderTop: "1px solid var(--border)", paddingTop: 36 }}>
+              <CoreCodeCard
+                analysis={buildSnapshot(participant?.name || "Du", data, coveredCategoryIds)}
+                gold={premium}
+              />
+            </div>
+          )}
+
+          {!currentSaved && (
+            <div style={{
+              marginTop: 12,
+              border: "1px solid var(--border-soft)",
+              background: "var(--surface)",
+              padding: "24px 28px",
+            }}>
+              <h3 style={{ fontFamily: "var(--display)", fontStyle: "italic", fontSize: 20, margin: "0 0 10px 0" }}>
+                {t("dashboard.saveAnalysisBoxTitle")}
+              </h3>
+              <p style={{ fontSize: 15, color: "var(--fg-soft)", lineHeight: 1.5, margin: "0 0 20px 0" }}>
+                {account ? t("dashboard.saveAnalysisBoxDesc") : t("dashboard.saveAnalysisBoxDescLogin")}
+              </p>
+              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
+                <button
+                  className="kk-btn-primary"
+                  onClick={onSave}
+                >
+                  {account ? t("dashboard.saveAnalysisBtn") : t("dashboard.saveLoginBtn")}
+                </button>
+                <button
+                  className="kk-btn-ghost"
+                  onClick={downloadPdf}
+                >
+                  {t("dashboard.noThanksBtn")}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {currentSaved && (
+            <div style={{
+              marginTop: 12,
+              border: "1px solid var(--gold-soft)",
+              background: "var(--gold-alpha-12)",
+              padding: "24px 28px",
+              borderLeft: "4px solid var(--gold)",
+            }}>
+              <h3 style={{ fontFamily: "var(--mono)", fontSize: 15, letterSpacing: "0.18em", color: "var(--gold)", margin: "0 0 10px 0" }}>
+                {t("dashboard.savedAlert")}
+              </h3>
+              <p style={{ fontSize: 15, color: "var(--fg-soft)", lineHeight: 1.5, margin: "0 0 20px 0" }}>
+                {t("dashboard.savedAlertDesc")}
+              </p>
+              <button
+                className="kk-btn-primary"
+                onClick={() => setPhase("account")}
+              >
+                {t("dashboard.goToAccountBtn")}
+              </button>
+            </div>
+          )}
+
+          {data && (
+            <div style={{ marginTop: 24, borderTop: "1px solid var(--border)", paddingTop: 36 }}>
+              <CompareSection
+                archetypeKey={mapAnalysisToArchetype(data).key}
+                themes={data.key_themes || []}
+                embedded={true}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -1050,13 +1111,10 @@ function AnalysisScreen({ analysis, analysisData, structuredAnswers, participant
         </pre>
       )}
 
-      {archetype && (
-        <div style={{ marginTop: 60, paddingTop: 48, borderTop: "1px solid var(--border)" }}>
-          <ArchetypeDistribution activeId={archetype.id} />
-        </div>
-      )}
-
-      <div style={{ marginTop: 40 }}><CrisisBox /></div>
+      <div style={{ marginTop: 40, display: "flex", flexDirection: "column", gap: 8 }}>
+        <CrisisHelpBox compact />
+        <ContactRosten style={{ marginTop: 12 }} />
+      </div>
       <BrandFooter />
     </section>
   );
@@ -1102,6 +1160,38 @@ export default function App() {
   const [participant, setParticipant] = useState(
     initial?.participant?.name ? initial.participant : EMPTY_PARTICIPANT
   );
+
+  const [account, setAccount] = useState(() => {
+    try {
+      const saved = localStorage.getItem("kk_account_v1");
+      return saved ? JSON.parse(saved) : null;
+    } catch (_) { return null; }
+  });
+
+  const [savedAnalyses, setSavedAnalyses] = useState(() => {
+    try {
+      const saved = localStorage.getItem("kk_saved_v1");
+      return saved ? JSON.parse(saved) : [];
+    } catch (_) { return []; }
+  });
+
+  const [premium, setPremium] = useState(() => {
+    try {
+      return localStorage.getItem("kk_premium_v1") === "true";
+    } catch (_) { return false; }
+  });
+
+  const [social, setSocial] = useState(() => {
+    try {
+      const saved = localStorage.getItem("kk_social_v1");
+      return saved ? JSON.parse(saved) : kkDefaultSocial();
+    } catch (_) { return kkDefaultSocial(); }
+  });
+
+  const [peerId, setPeerId] = useState(null);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [loginModal, setLoginModal] = useState(null);
+  const [currentSaved, setCurrentSaved] = useState(false);
 
   const savedSession =
     (initial?.phase === "questions" || (initial?.questionNumber > 0 && initial?.phase !== "result"))
@@ -1151,10 +1241,232 @@ export default function App() {
   ]);
 
   useEffect(() => {
+    try {
+      if (account) localStorage.setItem("kk_account_v1", JSON.stringify(account));
+      else localStorage.removeItem("kk_account_v1");
+    } catch (_) {}
+  }, [account]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("kk_saved_v1", JSON.stringify(savedAnalyses));
+    } catch (_) {}
+  }, [savedAnalyses]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("kk_premium_v1", String(premium));
+    } catch (_) {}
+  }, [premium]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("kk_social_v1", JSON.stringify(social));
+    } catch (_) {}
+  }, [social]);
+
+  useEffect(() => {
     if (phase === "questions" && initial?.phase === "analyzing" && !analysis && !analysisData && !error) {
       setError(t("errors.analysisInterrupted"));
     }
   }, []);
+
+  const handleLogin = (userAcct) => {
+    setAccount(userAcct);
+    
+    // Add seed analysis if they don't have any saved analysis yet to demonstrate history
+    setSavedAnalyses((prevSaved) => {
+      if (prevSaved.length === 0) {
+        return [buildPriorSeed(userAcct.name)];
+      }
+      return prevSaved;
+    });
+
+    const triggerAction = loginModal?.onResolve;
+    setLoginModal(null);
+    if (triggerAction) {
+      triggerAction(userAcct);
+    }
+  };
+
+  const onSaveCurrent = () => {
+    if (currentSaved) return;
+
+    const performSave = (currentAccount) => {
+      if (!analysisData) return;
+      const snap = buildSnapshot(currentAccount?.name || participant.name, analysisData, coveredCategoryIds);
+      setSavedAnalyses((prev) => {
+        // Avoid duplicate saves
+        if (prev.some((a) => a.ts === snap.ts || (a.archetypeKey === snap.archetypeKey && a.summary === snap.summary))) {
+          return prev;
+        }
+        return [snap, ...prev];
+      });
+      setCurrentSaved(true);
+    };
+
+    if (!account) {
+      setLoginModal({
+        reason: "save",
+        onResolve: (userAcct) => {
+          performSave(userAcct);
+        }
+      });
+    } else {
+      performSave(account);
+    }
+  };
+
+  // Account actions
+  const handleAddNote = (id, noteText) => {
+    setSavedAnalyses((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, note: noteText } : a))
+    );
+  };
+
+  const handleNewAnalysisFromSaved = (savedAnalysis) => {
+    // Resume/start new analysis using some of the existing settings
+    discardAndStart();
+  };
+
+  const handleDeleteAll = () => {
+    setSavedAnalyses([]);
+    setAccount(null);
+    setPremium(false);
+    setSocial(kkDefaultSocial());
+    setPhase("landing");
+  };
+
+  const handleLogout = () => {
+    setAccount(null);
+    setPhase("landing");
+  };
+
+  const handleActivatePremium = () => {
+    setPremium(true);
+  };
+
+  const handleCompare = (friendId) => {
+    setPeerId(friendId);
+  };
+
+  const handleRequestCompare = (friendId) => {
+    setSocial((prev) => ({
+      ...prev,
+      compare: {
+        ...prev.compare,
+        [friendId]: "sent",
+      },
+    }));
+  };
+
+  const handleAcceptCompare = (friendId) => {
+    setSocial((prev) => {
+      const updatedCompare = { ...prev.compare, [friendId]: "mutual" };
+      // Remove corresponding compare_request notification
+      const updatedNotifications = prev.notifications.filter(
+        (n) => !(n.type === "compare_request" && n.who === friendId)
+      );
+      // Append compare_accepted notification
+      updatedNotifications.unshift({
+        id: "n-accept-" + Date.now(),
+        ts: Date.now(),
+        type: "compare_accepted",
+        who: friendId,
+        read: false,
+      });
+      return {
+        ...prev,
+        compare: updatedCompare,
+        notifications: updatedNotifications,
+      };
+    });
+  };
+
+  const handleDeclineCompare = (friendId) => {
+    setSocial((prev) => {
+      const updatedCompare = { ...prev.compare };
+      delete updatedCompare[friendId];
+      const updatedNotifications = prev.notifications.filter(
+        (n) => !(n.type === "compare_request" && n.who === friendId)
+      );
+      return {
+        ...prev,
+        compare: updatedCompare,
+        notifications: updatedNotifications,
+      };
+    });
+  };
+
+  const handleToggleFollow = (friendId) => {
+    setSocial((prev) => {
+      const list = prev.followingIds || [];
+      const updated = list.includes(friendId)
+        ? list.filter((id) => id !== friendId)
+        : [...list, friendId];
+      return {
+        ...prev,
+        followingIds: updated,
+      };
+    });
+  };
+
+  const handleAcceptFriend = (friendId) => {
+    setSocial((prev) => {
+      const updatedRequests = (prev.requestsIn || []).filter((id) => id !== friendId);
+      const updatedFriends = Array.from(new Set([...(prev.friendIds || []), friendId]));
+      // Add accepted notification
+      const updatedNotifications = [...(prev.notifications || [])];
+      updatedNotifications.unshift({
+        id: "n-friend-" + Date.now(),
+        ts: Date.now(),
+        type: "friend_accepted",
+        who: friendId,
+        read: false,
+      });
+      return {
+        ...prev,
+        requestsIn: updatedRequests,
+        friendIds: updatedFriends,
+        notifications: updatedNotifications,
+      };
+    });
+  };
+
+  const handleDeclineFriend = (friendId) => {
+    setSocial((prev) => {
+      const updatedRequests = (prev.requestsIn || []).filter((id) => id !== friendId);
+      return {
+        ...prev,
+        requestsIn: updatedRequests,
+      };
+    });
+  };
+
+  const handleSendFriendRequest = (friendId) => {
+    setSocial((prev) => {
+      const updatedPending = Array.from(new Set([...(prev.pendingOut || []), friendId]));
+      return {
+        ...prev,
+        pendingOut: updatedPending,
+      };
+    });
+  };
+
+  const handleSavePrivacy = (newSharing) => {
+    setSocial((prev) => ({
+      ...prev,
+      sharing: newSharing,
+    }));
+    setPrivacyOpen(false);
+  };
+
+  const handleMarkAllRead = () => {
+    setSocial((prev) => ({
+      ...prev,
+      notifications: (prev.notifications || []).map((n) => ({ ...n, read: true })),
+    }));
+  };
 
   const callClaude = useCallback(async (messages, options = {}) => {
     const {
@@ -1182,7 +1494,6 @@ export default function App() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gemini-2.5-flash",
             max_tokens: maxTokens,
             json_mode: jsonMode || analysisMode,
             json_schema: jsonMode ? "question" : undefined,
@@ -1266,6 +1577,10 @@ export default function App() {
               retryAttempt + 1
             );
           }
+          if (analysisMode && data?.partial) {
+            console.warn("[RECOVERY] Bruker delvis parset JSON fra server etter 413.");
+            return data.partial;
+          }
         }
 
         if (!response.ok) {
@@ -1301,7 +1616,17 @@ export default function App() {
               retryAttempt + 1
             );
           }
-          throw new Error("Analysen ble avkortet etter alle forsøk. Prøv igjen.");
+          console.warn("[RECOVERY] Analysen ble avkortet etter alle forsøk. Bruker tilgjengelig råtekst.");
+          return {
+            type: "analysis",
+            analysis: text,
+            short_summary: "Klinisk rapport (delvis avkortet)",
+            overall_insight: "Rapporten ble avkortet pga. lengdebegrensning, men tilgjengelig tekst er bevart.",
+            key_themes: [],
+            conflicts: [],
+            clinical_followup: "",
+            frameworks: null
+          };
         }
 
         const tryParse = () => parseLlmJson(text);
@@ -1312,7 +1637,22 @@ export default function App() {
           console.log("[DIAG] Parsed result:", JSON.stringify(parsed, null, 2));
           return parsed;
         } catch (parseErr) {
-          if (retriesLeft <= 0) throw parseErr;
+          if (retriesLeft <= 0) {
+            if (analysisMode) {
+              console.warn("[RECOVERY] Kunne ikke parse analyse-JSON etter alle forsøk. Bruker råtekst.");
+              return {
+                type: "analysis",
+                analysis: text,
+                short_summary: "Klinisk rapport (råtekst)",
+                overall_insight: "Rapporten ble gjenopprettet fra råtekst på grunn av en formateringsfeil.",
+                key_themes: [],
+                conflicts: [],
+                clinical_followup: "",
+                frameworks: null
+              };
+            }
+            throw parseErr;
+          }
           const isTruncated =
             data?.truncated || data?.finishReason === "MAX_TOKENS";
           const retryKey = isTruncated
@@ -1351,7 +1691,7 @@ export default function App() {
   }, [locale, systemPrompt, t]);
 
   const finishAnalysis = useCallback(
-    (analysisResult, historyToUse, rawResult) => {
+    (analysisResult, historyToUse, rawResult, answersToUse = structuredAnswers) => {
       setConversationHistory([
         ...historyToUse,
         { role: "user", content: apiT(locale, "api.generateAnalysis") },
@@ -1359,7 +1699,7 @@ export default function App() {
       ]);
       setAnalyzingStatus(t("analyzing.reportReady"));
       if (participant?.id) {
-        markParticipantAnalysisComplete(participant.id, structuredAnswers.length);
+        markParticipantAnalysisComplete(participant.id, answersToUse.length);
       }
       setTimeout(() => {
         setAnalysis(analysisResult.analysis);
@@ -1368,7 +1708,7 @@ export default function App() {
         setAnalyzingStatus("");
       }, 1200);
     },
-    [participant?.id, structuredAnswers.length, locale, t]
+    [participant?.id, structuredAnswers, locale, t]
   );
 
   const applyMetaFromResult = useCallback(
@@ -1385,7 +1725,7 @@ export default function App() {
   );
 
   const triggerAnalysis = useCallback(
-    async (historyToUse) => {
+    async (historyToUse, answersToUse = structuredAnswers) => {
       clearError();
       setIsLoading(true);
       setOpinion("");
@@ -1396,31 +1736,31 @@ export default function App() {
       setAnalyzingStatus(t("analyzing.step2"));
       try {
         let result = await callClaude(
-          buildDirectAnalysisMessages(structuredAnswers, historyToUse, participant, locale),
+          buildDirectAnalysisMessages(answersToUse, historyToUse, participant, locale),
           // 6000 tokens: 13 ## sections (Observasjon/Tolkning/Usikkerhet) + 5 frameworks
           // fits comfortably in ~4000-5500 tokens. Cap at 6000 to stay well within
           // Netlify Pro's 26-second function timeout. 8192 caused 504s with the
           // expanded system prompt (Winnicott/Kohut/Bion + 3 new sections).
-          { structuredAnswers, maxTokens: 6000, skipPrepare: true, analysisMode: true, participant }
+          { structuredAnswers: answersToUse, maxTokens: 6000, skipPrepare: true, analysisMode: true, participant }
         );
         let analysisResult = normalizeAnalysis(result);
         if (!analysisResult.analysis) {
           const retry = await callClaude(
             [
-              ...buildDirectAnalysisMessages(structuredAnswers, historyToUse, participant, locale),
+              ...buildDirectAnalysisMessages(answersToUse, historyToUse, participant, locale),
               { role: "assistant", content: JSON.stringify(result) },
               {
                 role: "user",
                 content: apiT(locale, "api.analysisRetry"),
               },
             ],
-            { structuredAnswers, maxTokens: 6000, skipPrepare: true, analysisMode: true, participant }
+            { structuredAnswers: answersToUse, maxTokens: 6000, skipPrepare: true, analysisMode: true, participant }
           );
           result = retry;
           analysisResult = normalizeAnalysis(retry);
         }
         if (analysisResult.analysis) {
-          finishAnalysis(analysisResult, historyToUse, result);
+          finishAnalysis(analysisResult, historyToUse, result, answersToUse);
         } else {
           setPhase("questions");
           setError(t("errors.analysisNotGenerated"));
@@ -1558,7 +1898,7 @@ export default function App() {
       // This avoids the heavy call that often times out near 50 questions.
       if (mustForceAnalysis(questionNumber)) {
         setConversationHistory(newHistory);
-        await triggerAnalysis(newHistory);
+        await triggerAnalysis(newHistory, nextStructured);
         return;
       }
 
@@ -1569,7 +1909,7 @@ export default function App() {
         // Honour its intent by triggering the analysis flow directly.
         if (result?.type === "auto_analysis_trigger") {
           setConversationHistory(newHistory);
-          await triggerAnalysis(newHistory);
+          await triggerAnalysis(newHistory, nextStructured);
           return;
         }
 
@@ -1582,7 +1922,7 @@ export default function App() {
 
         if (analysisResult.analysis) {
           setPhase("analyzing");
-          finishAnalysis(analysisResult, updatedHistory, result);
+          finishAnalysis(analysisResult, updatedHistory, result, nextStructured);
           return;
         }
 
@@ -1599,7 +1939,7 @@ export default function App() {
             // "analyzing" med en gang den starter.
             setPhase("ready_for_analysis");
             setConversationHistory(updatedHistory);
-            await triggerAnalysis(updatedHistory);
+            await triggerAnalysis(updatedHistory, nextStructured);
             return;
           }
           // Fallback: if the model returned the exact same question again
@@ -1610,12 +1950,12 @@ export default function App() {
           ) {
             setPhase("ready_for_analysis");
             setConversationHistory(updatedHistory);
-            await triggerAnalysis(updatedHistory);
+            await triggerAnalysis(updatedHistory, nextStructured);
             return;
           }
           const nextNum = result.questionNumber || questionNumber + 1;
           if (nextNum > MAX_QUESTIONS) {
-            await triggerAnalysis(updatedHistory);
+            await triggerAnalysis(updatedHistory, nextStructured);
             return;
           }
           setConversationHistory(updatedHistory);
@@ -1749,23 +2089,42 @@ export default function App() {
 
   return (
     <div className="app-root">
-      <ParticleField mode="partikler" intensity={1} />
+      <ScanlineOverlay />
+      <BrandWatermark />
       <BrandHeader
-        onLogo={() => setPhase("landing")}
+        onLogo={phase !== "landing" && phase !== "intro" ? () => {
+          if (account) setPhase("account");
+          else setPhase("landing");
+        } : undefined}
         right={
-          phase === "landing" ? (
-            <button className="kk-btn-ghost" style={{ padding: "9px 18px", fontSize: 11 }} onClick={() => setPhase("intro")}>
-              START&ensp;▸
-            </button>
-          ) : (
-            <span className="kk-label">{({
-              intro: "Registrering",
-              questions: "Datainnsamling",
-              ready_for_analysis: "Datainnsamling",
-              analyzing: "Analyse",
-              result: "Rapport",
-            })[phase] || ""}</span>
-          )
+          phase !== "landing" && phase !== "intro" ? (
+            <>
+              {account ? (
+                <button
+                  className={phase === "account" ? "kk-btn-primary" : "kk-btn-ghost"}
+                  style={{ padding: "6px 12px", fontSize: 11 }}
+                  onClick={() => setPhase("account")}
+                >
+                  {t("dashboard.title") || "Min side"}
+                </button>
+              ) : null}
+              {phase === "questions" ? null : (
+                <button
+                  className="kk-btn-ghost"
+                  style={{ padding: "6px 12px", fontSize: 11 }}
+                  onClick={() => {
+                    if (structuredAnswers.length > 0) {
+                      setPhase("questions");
+                    } else {
+                      setPhase("intro");
+                    }
+                  }}
+                >
+                  {structuredAnswers.length > 0 ? t("intro.continue") : t("intro.newAnalysis")}
+                </button>
+              )}
+            </>
+          ) : null
         }
       />
       {phase === "landing" && <Landing onStart={() => { setPhase("intro"); window.scrollTo(0, 0); }} />}
@@ -1839,6 +2198,64 @@ export default function App() {
           structuredAnswers={structuredAnswers}
           participant={participant?.name ? participant : null}
           onRestart={restart}
+          currentSaved={currentSaved}
+          onSave={onSaveCurrent}
+          account={account}
+          coveredCategoryIds={coveredCategoryIds}
+          setPhase={setPhase}
+          premium={premium}
+        />
+      )}
+      {phase === "account" && (
+        <AccountScreen
+          account={account}
+          saved={savedAnalyses}
+          onAddNote={handleAddNote}
+          onNewAnalysis={handleNewAnalysisFromSaved}
+          onDeleteAll={handleDeleteAll}
+          onLogout={handleLogout}
+          onStart={discardAndStart}
+          premium={premium}
+          social={social}
+          onActivatePremium={handleActivatePremium}
+          onCompare={handleCompare}
+          onRequestCompare={handleRequestCompare}
+          onAcceptCompare={handleAcceptCompare}
+          onDeclineCompare={handleDeclineCompare}
+          onToggleFollow={handleToggleFollow}
+          onAccept={handleAcceptFriend}
+          onDecline={handleDeclineFriend}
+          onSendRequest={handleSendFriendRequest}
+          onOpenPrivacy={() => setPrivacyOpen(true)}
+          onMarkAllRead={handleMarkAllRead}
+        />
+      )}
+
+      {loginModal && (
+        <LoginModal
+          context={loginModal.reason}
+          onClose={() => setLoginModal(null)}
+          onLogin={handleLogin}
+        />
+      )}
+
+      {peerId && (
+        <PeerCompareOverlay
+          me={kkExpandPerson(
+            savedAnalyses[0] || buildSnapshot(account?.name || participant?.name || "Du", analysisData || { short_summary: "Klinisk rapport" }, coveredCategoryIds),
+            account?.name || participant?.name || "Du"
+          )}
+          friend={kkExpandPerson(KK_PEOPLE[peerId])}
+          mySharing={social.sharing}
+          onClose={() => setPeerId(null)}
+        />
+      )}
+
+      {privacyOpen && (
+        <PrivacyModal
+          sharing={social.sharing}
+          onSave={handleSavePrivacy}
+          onClose={() => setPrivacyOpen(false)}
         />
       )}
     </div>

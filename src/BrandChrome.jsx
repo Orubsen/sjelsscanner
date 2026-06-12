@@ -151,75 +151,109 @@ export function BrandWatermark() {
   );
 }
 
-/* ---------- BrandHeader ----------
-   Fixed header with gradient fade, logo + brand name.
-   Props:
-     onLogo  – click handler for logo/name (navigate to landing)
-     right   – optional JSX to render on the right side          */
+/* ---------- BrandHeader ---------- */
 export function BrandHeader({ onLogo, right }) {
   return (
-    <header style={{
-      position: "fixed", top: 0, left: 0, right: 0, zIndex: 40,
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "16px var(--pad-x)",
-      background: "linear-gradient(to bottom, rgba(11,8,26,0.92), rgba(11,8,26,0))",
+    <div style={{
+      position: "fixed",
+      top: 14,
+      left: 16,
+      right: 16,
+      zIndex: 900,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
     }}>
-      <button
+      <div
         onClick={onLogo}
         style={{
-          display: "flex", alignItems: "center", gap: 12, background: "none",
-          border: "none", cursor: onLogo ? "pointer" : "default", padding: 0,
+          cursor: onLogo ? "pointer" : "default",
+          display: "flex",
+          alignItems: "center",
         }}
       >
         <img
           src={LOGO_SRC}
-          alt="Røsten"
-          style={{ width: 34, height: 34 }}
+          alt=""
+          style={{
+            width: 36,
+            height: 36,
+            opacity: 0.42,
+            filter: "drop-shadow(0 0 12px var(--accent-alpha-15))",
+          }}
         />
-        <span style={{
-          fontFamily: "var(--mono)", fontSize: 13, letterSpacing: "0.32em",
-          color: "var(--fg)", fontWeight: 600,
-        }}>KJERNEKODEN</span>
-      </button>
+      </div>
       {right && (
-        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>{right}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {right}
+        </div>
       )}
-    </header>
+    </div>
   );
 }
 
-/* ---------- BrandFooter ----------
-   Inline (NOT fixed) footer matching prototype design. */
+/* ---------- BrandFooter ---------- */
+const footerWrapStyle = {
+  position: "fixed",
+  left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 900,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: 6,
+  padding: "8px 16px 10px",
+  background: "linear-gradient(to top, rgba(8,10,15,0.95), rgba(8,10,15,0.75))",
+  borderTop: "1px solid var(--border)",
+  fontFamily: "var(--mono)",
+  fontSize: 10,
+  letterSpacing: 1,
+  color: "var(--dim)",
+};
+
+const footerLinkStyle = {
+  color: "var(--dim)",
+  textDecoration: "none",
+  margin: "0 8px",
+  transition: "color 0.15s",
+};
+
 export function BrandFooter() {
   const { t, brand } = useI18n();
   const year = new Date().getFullYear();
+  const COPYRIGHT_SYMBOL_SRC = "/copyright-symbol.svg";
   return (
-    <footer style={{
-      position: "relative", zIndex: 5,
-      display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-      padding: "26px 16px 30px", borderTop: "1px solid var(--border)",
-      fontFamily: "var(--mono)", fontSize: 10.5, letterSpacing: "0.12em",
-      color: "var(--dim)", background: "var(--bg-2)",
-    }}>
-      <nav style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 22 }}>
-        <a href="/personvern" style={{ color: "var(--dim)", textDecoration: "none" }}>
+    <footer style={footerWrapStyle}>
+      <nav style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 4 }}>
+        <a href="/personvern" style={footerLinkStyle}>
           {t("footer.privacy")}
         </a>
-        <a href={`mailto:${brand.contactEmail}`} style={{ color: "var(--dim)", textDecoration: "none" }}>
+        <a href={`mailto:${brand.contactEmail}`} style={footerLinkStyle}>
           {t("footer.contact")}
         </a>
-        {brand.websiteUrl && (
-          <a href={brand.websiteUrl} style={{ color: "var(--dim)", textDecoration: "none" }} target="_blank" rel="noopener noreferrer">
+        {brand.websiteUrl ? (
+          <a href={brand.websiteUrl} style={footerLinkStyle} target="_blank" rel="noopener noreferrer">
             {t("contact.website")}
           </a>
-        )}
-        <a href="tel:116123" style={{ color: "var(--gold-soft)", textDecoration: "none" }}>
+        ) : null}
+        <a href="tel:116123" style={footerLinkStyle}>
           {t("footer.crisis")}
         </a>
       </nav>
-      <span style={{ color: "var(--dim-2)" }}>
-        © {year} {brand.company}. {t("brand.rightsReserved")}
-      </span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <img
+          src={COPYRIGHT_SYMBOL_SRC}
+          alt=""
+          width={14}
+          height={14}
+          style={{ opacity: 0.85, flexShrink: 0 }}
+          aria-hidden
+        />
+        <span className="brand-footer-text">
+          {year} {brand.company}. {t("brand.rightsReserved")}
+        </span>
+      </div>
     </footer>
   );
 }
@@ -232,10 +266,11 @@ export function IntroBrandMark() {
       src={LOGO_SRC}
       alt={brand.name}
       style={{
-        width: 60,
-        height: 60,
-        marginBottom: 24,
-        filter: "drop-shadow(0 0 24px var(--accent-alpha-25))",
+        width: 56,
+        height: 56,
+        marginBottom: 20,
+        opacity: 0.85,
+        filter: "drop-shadow(0 0 20px var(--accent-alpha-25))",
       }}
     />
   );

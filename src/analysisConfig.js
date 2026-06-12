@@ -1,6 +1,6 @@
 export const STORAGE_KEY = "sjelsscanner_state_v3";
 
-export const MAX_QUESTIONS = 25;
+export const MAX_QUESTIONS = 40;
 export const MIN_QUESTIONS_SUGGEST = 15;
 export const META_CALL_LIMIT = 8;
 
@@ -13,6 +13,7 @@ export const BRAND = {
   websiteUrl: "https://rubenrøsten.no",
   websiteLabel: "rubenrøsten.no",
   siteUrl: "https://sjelescanner.netlify.app",
+  googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || "724660703679-placeholder.apps.googleusercontent.com",
 };
 
 /** Ca. tid for typisk økt (spørsmål + rapport). */
